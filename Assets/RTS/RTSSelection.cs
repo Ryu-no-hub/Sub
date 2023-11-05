@@ -185,7 +185,6 @@ public class RTSSelection : MonoBehaviour
 
         // Set the collider mesh
         selectionCollider.sharedMesh = currentSelectionMesh;
-        Debug.Log(selectionCollider.isTrigger);
 
         StartCoroutine(ProcessTriggerHits());
     }

@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MoveSubV6 : MonoBehaviour, ISelectable
+public class MoveSubV7 : MonoBehaviour, ISelectable
 {
     [SerializeField] private Camera mainCamera;
     [SerializeField] private LayerMask layerMask;
@@ -33,11 +33,13 @@ public class MoveSubV6 : MonoBehaviour, ISelectable
     Vector3 horProjection;
 
     public Vector3 targetPosition;
+    public Vector3 oldTargetPosition;
     private ParticleSystem bubblesLeft;
     private ParticleSystem bubblesRight;
     private GameObject selectionSprite;
     private float torqueForce = 0.05f;
     private float angleUp;
+    //private bool newOrderFlag = false;
 
     public int team = -1;
     public int Team
@@ -63,7 +65,7 @@ public class MoveSubV6 : MonoBehaviour, ISelectable
         subRb = GetComponent<Rigidbody>();
         bubblesLeft = transform.Find("BubblesLeft").GetComponent<ParticleSystem>();
         bubblesRight = transform.Find("BubblesRight").GetComponent<ParticleSystem>();
-        targetPosition = transform.position;
+        targetPosition = Vector3.zero;
         forwardDirection = transform.forward;
         currentPos = transform.position;
         newDirection = targetPosition - currentPos;
@@ -107,7 +109,7 @@ public class MoveSubV6 : MonoBehaviour, ISelectable
             {
                 Move(1);
             }
-            else if(moveMode == 2)
+            else if (moveMode == 2)
             {
                 Move(-2);
             }
@@ -121,7 +123,7 @@ public class MoveSubV6 : MonoBehaviour, ISelectable
                 }
                 else
                 {
-                    print("SWITCH to forward = ");
+                    //print("Switching to forward thrust");
                     moveMode = 1;
                 }
             }
@@ -135,76 +137,59 @@ public class MoveSubV6 : MonoBehaviour, ISelectable
                     )
             {
                 moveMode = 0;
-                targetPosition = new Vector3(0, 0, 0);                
+                targetPosition = Vector3.zero;
                 bubblesLeft.Stop();
                 bubblesRight.Stop();
             }
         }
-        else if(angleUp > 5) // Align
+        else if (angleUp > 5) // Align
         {
-            print("Aligning,  angle = " + angleUp);
+            //print("Aligning,  angle = " + angleUp);
 
             horProjection = Vector3.ProjectOnPlane(forwardDirection, Vector3.up);
-            Debug.Log(horProjection);
-            Debug.DrawRay(transform.position,  horProjection, Color.cyan);
-            Debug.DrawRay(transform.position,  Vector3.up, Color.yellow);
+            //Debug.Log(horProjection);
+            Debug.DrawRay(transform.position, horProjection, Color.cyan);
+            Debug.DrawRay(transform.position, Vector3.up, Color.yellow);
 
-            Quaternion planeRotation = Quaternion.LookRotation(horProjection , Vector3.up);
-            if(angleUp > 90) { planeRotation = Quaternion.Inverse(planeRotation); }
+            Quaternion planeRotation = Quaternion.LookRotation(horProjection, Vector3.up);
+            if (angleUp > 90) { planeRotation = Quaternion.Inverse(planeRotation); }
             transform.rotation = Quaternion.RotateTowards(transform.rotation, planeRotation, 0.2f * Vector3.Angle(forwardDirection, Vector3.forward) * Time.deltaTime);
 
-            Debug.Log(Vector3.ProjectOnPlane(transform.up, Vector3.up));
+            //Debug.Log(Vector3.ProjectOnPlane(transform.up, Vector3.up));
             //if (Vector3.ProjectOnPlane(transform.up, Vector3.up).x >= 0) { torqueForce = -0.05f; Debug.Log("Neg"); } else { torqueForce = 0.05f; }
             //if (angleUp < 90) { torqueForce = -0.05f; Debug.Log("Neg"); } else { torqueForce = 0.1f; }
             //subRb.AddTorque(horProjection * torqueForce, ForceMode.Force);
             //subRb.AddTorque(transform.right * torqueForce, ForceMode.Force);
         }
 
-        if (selectionSprite.activeSelf && Input.GetKeyDown(KeyCode.Mouse1))
+        if (targetPosition != Vector3.zero && oldTargetPosition != targetPosition)
+        //if (targetPosition != Vector3.zero)
         {
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit raycastHit, float.MaxValue, layerMask))
+            //Debug.Log("Old Target " + oldTargetPosition);
+            //Debug.Log("New Target " + targetPosition);
+            //print("New order");
+            if (forwardTargetAngle <= 45 || (forwardTargetAngle < 155 && targetDistance > 15) || (forwardTargetAngle >= 155 && targetDistance > 15))
             {
-                RaycastHit hitTerrain;
-                if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.down), out hitTerrain, Mathf.Infinity, layerMask))
-                {
-                    myTerrainHeight = hitTerrain.point.y;
-                    Debug.Log(myTerrainHeight);
-                }
-                targetPosition.x = raycastHit.point.x;
-                targetPosition.y = raycastHit.point.y + (transform.position.y - myTerrainHeight);
-                targetPosition.z = raycastHit.point.z;
-                Debug.Log(raycastHit.point);
-                //Destroy(GameObject.Find("TargetPillar(Clone)"));
-                //Instantiate(pillarPrefab, raycastHit.point, pillarPrefab.transform.rotation);
-
-                currentPos = transform.position;
-                forwardDirection = transform.forward;
-                newDirection = targetPosition - currentPos;
-                forwardTargetAngle = Vector3.Angle(forwardDirection, newDirection);
-                //Debug.Log("forwardTargetAngle = " + forwardTargetAngle);
-                targetDistance = newDirection.magnitude;
-                //Debug.Log("targetDistance = " + targetDistance);
-                if (currentPos != targetPosition && targetPosition != new Vector3(0, 0, 0))
-                {
-
-                    //print("targetDistance = " + targetDistance);
-                    //print("forwardTargetAngle = " + forwardTargetAngle);
-                    if (forwardTargetAngle <= 45 || (forwardTargetAngle < 155 && targetDistance > 15) || (forwardTargetAngle >= 155 && targetDistance > 15))
-                    {
-                        moveMode = 1;
-                    }
-                    else if (forwardTargetAngle > 155)
-                    {
-                        moveMode = 2;
-                    }
-                    else
-                    {
-                        moveMode = 3;
-                    }
-                    Debug.Log(moveMode);
-                }
+                moveMode = 1;
             }
+            else if (forwardTargetAngle > 155)
+            {
+                moveMode = 2;
+            }
+            else
+            {
+                moveMode = 3;
+            }
+            //Debug.Log(moveMode);
+
+            //RaycastHit hitTerrain;
+            //if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.down), out hitTerrain, Mathf.Infinity, layerMask))
+            //{
+            //    myTerrainHeight = hitTerrain.point.y;
+            //    targetPosition.y += (transform.position.y - myTerrainHeight);
+            //}
+            oldTargetPosition = targetPosition;
+            //Debug.Log("Old Target = new Target = " + oldTargetPosition);
         }
     }
     void Move(int mode = 1)
