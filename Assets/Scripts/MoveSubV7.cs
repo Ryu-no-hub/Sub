@@ -144,11 +144,11 @@ public class MoveSubV7 : MonoBehaviour, ISelectable
         }
         else if (angleUp > 5) // Align
         {
-            //print("Aligning,  angle = " + angleUp);
+            print("Aligning,  angle = " + angleUp);
 
             horProjection = Vector3.ProjectOnPlane(forwardDirection, Vector3.up);
             //Debug.Log(horProjection);
-            Debug.DrawRay(transform.position, horProjection, Color.cyan);
+            Debug.DrawRay(transform.position, horProjection * 1000, Color.cyan);
             Debug.DrawRay(transform.position, Vector3.up, Color.yellow);
 
             Quaternion planeRotation = Quaternion.LookRotation(horProjection, Vector3.up);

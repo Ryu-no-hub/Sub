@@ -49,9 +49,11 @@ public class RTSCamera : MonoBehaviour
         if (Input.GetMouseButton(1))
         {
             float xRotation = Input.GetAxis("Mouse X");
+            //float yRotation = Input.GetAxis("Mouse Y");
 
             // Rotate around y axis
             transform.Rotate(0, xRotation * rotateSensitivity * Time.deltaTime, 0, Space.World);
+            //transform.Rotate(0, 0, -yRotation * rotateSensitivity * Time.deltaTime, Space.Self);
         }
     }
 
