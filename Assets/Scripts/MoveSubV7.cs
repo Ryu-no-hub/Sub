@@ -29,7 +29,7 @@ public class MoveSubV7 : MonoBehaviour, ISelectable
     float backTrustCoeff;
     float stopTime;
     float dragDeceleration;
-    float myTerrainHeight;
+    //float myTerrainHeight;
     Vector3 horProjection;
 
     public Vector3 targetPosition;
@@ -41,7 +41,7 @@ public class MoveSubV7 : MonoBehaviour, ISelectable
     private float angleUp;
     //private bool newOrderFlag = false;
 
-    public int team = -1;
+    public int team = 1;
     public int Team
     {
         get { return team; }
@@ -71,7 +71,7 @@ public class MoveSubV7 : MonoBehaviour, ISelectable
         newDirection = targetPosition - currentPos;
         forwardTargetAngle = Vector3.Angle(forwardDirection, newDirection);
         targetDistance = newDirection.magnitude;
-        rotationSpeedCoeff = 700;
+        rotationSpeedCoeff = 1500;
         backTrustCoeff = 0.5f;
         selectionSprite = transform.Find("Selection Sprite").gameObject;
         //GetComponent<MeshRenderer>().material.color = Color.white;
@@ -142,7 +142,7 @@ public class MoveSubV7 : MonoBehaviour, ISelectable
                 bubblesRight.Stop();
             }
         }
-        else if (angleUp > 5) // Align
+        else if (angleUp > 200) // Align
         {
             print("Aligning,  angle = " + angleUp);
 
@@ -153,10 +153,27 @@ public class MoveSubV7 : MonoBehaviour, ISelectable
 
             Quaternion planeRotation = Quaternion.LookRotation(horProjection, Vector3.up);
             if (angleUp > 90) { planeRotation = Quaternion.Inverse(planeRotation); }
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, planeRotation, 0.2f * Vector3.Angle(forwardDirection, Vector3.forward) * Time.deltaTime);
+            //transform.rotation = Quaternion.RotateTowards(transform.rotation, planeRotation, 0.2f * Vector3.Angle(forwardDirection, Vector3.forward) * Time.deltaTime);
 
+            float xDegreeDelta;
+            float zDegreeDelta;
+            //if (transform.localEulerAngles.x <= 180)
+            //    xDegreeDelta = transform.localEulerAngles.x * 0.05f;
+            //else
+            //    xDegreeDelta = (360 - transform.localEulerAngles.x) * 0.05f;
+            xDegreeDelta = (transform.localEulerAngles.x - 360) * 0.05f;
+
+            //if (transform.localEulerAngles.z <= 180)
+            //    zDegreeDelta = transform.localEulerAngles.z * 0.05f;
+            //else
+            //    zDegreeDelta = (360 - transform.localEulerAngles.z) * 0.05f;
+            zDegreeDelta = (transform.localEulerAngles.z) * 0.05f;
+
+            Debug.Log(gameObject.name + " Before " + transform.localEulerAngles);
+            //transform.localEulerAngles += new Vector3(xDegreeDelta, 0, -zDegreeDelta) * Time.deltaTime;
+            Debug.Log("After " + transform.localEulerAngles);
             //Debug.Log(Vector3.ProjectOnPlane(transform.up, Vector3.up));
-            //if (Vector3.ProjectOnPlane(transform.up, Vector3.up).x >= 0) { torqueForce = -0.05f; Debug.Log("Neg"); } else { torqueForce = 0.05f; }
+            //if (Vector3.ProjectOnPlane(transform.up, Vector3.up).x >= 0) { torqueForce = 0.05f; Debug.Log("Neg"); } else { torqueForce = -0.05f; }
             //if (angleUp < 90) { torqueForce = -0.05f; Debug.Log("Neg"); } else { torqueForce = 0.1f; }
             //subRb.AddTorque(horProjection * torqueForce, ForceMode.Force);
             //subRb.AddTorque(transform.right * torqueForce, ForceMode.Force);

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 /// <summary>
 /// Physics based RTS-style selection script.
@@ -19,7 +20,7 @@ public class RTSSelection : MonoBehaviour
     public RectTransform selectionRect;
 
     [Header("Settings")]
-    public int team = -1;
+    private int team = 1;
     public LayerMask raycastLayerMask;
     public float raycastMaxDistance = 500f;
 
@@ -43,9 +44,16 @@ public class RTSSelection : MonoBehaviour
     private Vector2 p1, p2;
     public bool selecting = false;
     public bool multiSelecting = false;
+    private GameObject UIPanel;
+    public TextMeshProUGUI iconSelectedUnitTypeCount;
 
     [HideInInspector] public List<ISelectable> detectedObjects = new List<ISelectable>();
     [HideInInspector] public List<ISelectable> toBeSelected = new List<ISelectable>();
+
+    private void Start()
+    {
+        UIPanel = GameObject.Find("Panel").gameObject;
+    }
 
     /// <summary>
     /// Starts the selection process (mouse down)
@@ -245,8 +253,19 @@ public class RTSSelection : MonoBehaviour
 
         // 3. Select all the objects in toBeSelected
         for (int i = 0; i < toBeSelected.Count; ++i)
+        {
             toBeSelected[i].Select();
-
+            string unitName = toBeSelected[i].gameObject.name;
+            //print("unitName " + unitName);
+            string unitType;
+            if (unitName.IndexOf(' ') == -1) unitType = unitName;
+            else unitType = unitName.Substring(0, unitName.IndexOf(' '));
+            //print("unitType " + unitType);
+            GameObject icon = UIPanel.transform.Find(unitType + "_icon").gameObject;
+            icon.SetActive(true);
+            iconSelectedUnitTypeCount = icon.transform.Find("Count").gameObject.GetComponent<TextMeshProUGUI>();
+            iconSelectedUnitTypeCount.text = toBeSelected.Count.ToString();
+        }
 
         // Selection complete! => do some cleaning up
         Cleanup();
@@ -285,10 +304,31 @@ public class RTSSelection : MonoBehaviour
     private void DeselectAll(bool clear = false)
     {
         for (int i = 0; i < toBeSelected.Count; ++i)
+        {
             toBeSelected[i].Deselect();
 
+            string unitName = toBeSelected[i].gameObject.name;
+            //print("unitName " + unitName);
+            string unitType;
+            if (unitName.IndexOf(' ') == -1) unitType = unitName;
+            else unitType = unitName.Substring(0, unitName.IndexOf(' '));
+            //print("unitType " + unitType);
+            GameObject icon = UIPanel.transform.Find(unitType + "_icon").gameObject;
+            icon.SetActive(true);
+            iconSelectedUnitTypeCount = icon.transform.Find("Count").gameObject.GetComponent<TextMeshProUGUI>();
+            iconSelectedUnitTypeCount.text = toBeSelected.Count.ToString();
+        }
+
         if (clear)
+        {
             toBeSelected.Clear();
+
+            foreach (Transform child in UIPanel.transform)
+            {
+                print("child.name = " + child.name);
+                child.gameObject.SetActive(false);
+            }
+        }
     }
 
     private void TryAddToDetected(ISelectable selectable)

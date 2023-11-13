@@ -36,7 +36,7 @@ public class MoveSubV6 : MonoBehaviour, ISelectable
     private ParticleSystem bubblesLeft;
     private ParticleSystem bubblesRight;
     private GameObject selectionSprite;
-    private float torqueForce = 0.05f;
+    //private float torqueForce = 0.05f;
     private float angleUp;
 
     public int team = -1;

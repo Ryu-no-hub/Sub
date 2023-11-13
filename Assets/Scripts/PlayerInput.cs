@@ -10,12 +10,16 @@ public class PlayerInput : MonoBehaviour
     private List<MoveSubV6> moveSubScript;
     private Vector3 orderPoint;
     private Transform orderTransform;
+    public GameObject subPrefab;
+    bool isQDown = false;
 
     private float myTerrainHeight;
     // Start is called before the first frame update
     void Start()
     {
-        
+        print("???"+subPrefab);
+        print(transform.position);
+        print(gameObject.name);
     }
 
     // Update is called once per frame
@@ -47,7 +51,7 @@ public class PlayerInput : MonoBehaviour
                 Vector3[] targetPointsInLine = new Vector3[totalUnits];
                 Vector3 wayLine = Vector3.zero;
 
-               // Debug.Log("Initial wayLine = " + wayLine);
+                // Debug.Log("Initial wayLine = " + wayLine);
                 foreach (GameObject unit in selectedUnits)
                 {
                     wayLine += unit.transform.position;
@@ -83,17 +87,17 @@ public class PlayerInput : MonoBehaviour
                         float distToTargetPoint = Vector3.Distance(unit.transform.position, targetPointsInLine[i]);
                         //print("compare: unitpos = " + unit.transform.position + ", target = " + targetPointsInLine[i]);
                         //print("compare: distToTargetPoint " + distToTargetPoint + " | " + minDistance + " = minDistance" + " unit: " + unit.name);
-                        if(distToTargetPoint < minDistance)
+                        if (distToTargetPoint < minDistance)
                         {
                             minDistance = distToTargetPoint;
                             minDistanceIndex = i;
                         }
                     }
-                    unit.GetComponent<MoveSubV7>().targetPosition = targetPointsInLine[minDistanceIndex];
+                    unit.GetComponent<MoveSubV8>().targetPosition = targetPointsInLine[minDistanceIndex];
                     targetPointsInLine[minDistanceIndex] = new Vector3(int.MaxValue, int.MaxValue, int.MaxValue);
                     //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().targetPosition + " for " + unit.name);
-                    print("Target position = " + unit.GetComponent<MoveSubV7>().targetPosition + " for " + unit.name);
-                    Debug.DrawLine(unit.transform.position, unit.GetComponent<MoveSubV7>().targetPosition, Color.black, 3.0f);
+                    print("Target position = " + unit.GetComponent<MoveSubV8>().targetPosition + " for " + unit.name);
+                    Debug.DrawLine(unit.transform.position, unit.GetComponent<MoveSubV8>().targetPosition, Color.black, 3.0f);
                 }
 
                 //i = 0;
@@ -105,5 +109,17 @@ public class PlayerInput : MonoBehaviour
                 selectedUnits.Clear();
             }
         }
+
+        if (Input.GetKeyDown(KeyCode.Q) & !isQDown)
+        {
+            isQDown = true;
+            Ray ray_spawn = mainCamera.ScreenPointToRay(Input.mousePosition);
+            if(Physics.Raycast(ray_spawn,out RaycastHit rayCastHit_spawn, float.MaxValue))
+            {
+                Vector3 spawnPoint = rayCastHit_spawn.point + new Vector3 (0, 3, 0);
+                Instantiate(subPrefab, spawnPoint, subPrefab.transform.rotation);
+            }
+        }
+        if (Input.GetKeyUp(KeyCode.Q)) isQDown = false;
     }
 }
