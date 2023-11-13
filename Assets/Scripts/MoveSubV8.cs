@@ -83,6 +83,9 @@ public class MoveSubV8 : MonoBehaviour, ISelectable
         //float turn = Input.GetAxis("Horizontal");
         //subRb.AddTorque(transform.up * 1 * turn);
 
+        //Debug.Log(gameObject.name);
+        //Debug.Log("Before " + transform.localEulerAngles);
+
         startVelocity = subRb.velocity;
         newVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
         subRb.velocity = newVelocity;
@@ -162,32 +165,41 @@ public class MoveSubV8 : MonoBehaviour, ISelectable
             //    xDegreeDelta = transform.localEulerAngles.x * 0.05f;
             //else
             //    xDegreeDelta = (360 - transform.localEulerAngles.x) * 0.05f;
-            xDegreeDelta = (transform.localEulerAngles.x - 360) * 0.05f;
+            //xDegreeDelta = (transform.localEulerAngles.x - 360) * 0.5f;
+            xDegreeDelta = (transform.localEulerAngles.x - 180) * 0.2f;
 
             //if (transform.localEulerAngles.z <= 180)
             //    zDegreeDelta = transform.localEulerAngles.z * 0.05f;
             //else
             //    zDegreeDelta = (360 - transform.localEulerAngles.z) * 0.05f;
-            zDegreeDelta = (transform.localEulerAngles.z) * 0.05f;
+            zDegreeDelta = (transform.localEulerAngles.z - 180) * 0.2f;
 
-            Debug.Log(gameObject.name + " Before " + transform.localEulerAngles);
-            transform.localEulerAngles += new Vector3(xDegreeDelta, 0, -zDegreeDelta) * Time.deltaTime;
-            Debug.Log("After " + transform.localEulerAngles);
+            //Debug.Log("Before " + transform.localEulerAngles);
+            Debug.Log(gameObject.name);
+            Debug.Log("Before " + transform.localEulerAngles);
+            Debug.Log("Delta vector = " + new Vector3(xDegreeDelta, 0, zDegreeDelta));
+            transform.localEulerAngles += new Vector3(xDegreeDelta, 0, zDegreeDelta) * Time.deltaTime;
+            //transform.localEulerAngles += new Vector3(xDegreeDelta, 0, -zDegreeDelta) * Time.deltaTime;
+            //Debug.Log("After " + transform.localEulerAngles);
+
             //Debug.Log(Vector3.ProjectOnPlane(transform.up, Vector3.up));
-            if (Vector3.ProjectOnPlane(transform.up, Vector3.up).x >= 0) { torqueForce = 0.05f; Debug.Log("Neg"); } else { torqueForce = -0.05f; }
+            //if (Vector3.ProjectOnPlane(transform.up, Vector3.up).x >= 0) { torqueForce = 0.05f; Debug.Log("Neg"); } else { torqueForce = -0.05f; }
             //if (angleUp < 90) { torqueForce = -0.05f; Debug.Log("Neg"); } else { torqueForce = 0.1f; }
             //subRb.AddTorque(horProjection * torqueForce, ForceMode.Force);
-            subRb.AddTorque(-transform.right * torqueForce, ForceMode.Force);
+            //subRb.AddTorque(-transform.right * torqueForce, ForceMode.Force);
+        }
+        else if (angleUp != 0)
+        {
+
+            Debug.Log(gameObject.name);
+            Debug.Log("Transform up = " + transform.up);
+            Debug.Log("angleUp = " + angleUp);
+
+            transform.localEulerAngles = new Vector3(0, transform.localEulerAngles.y, 0);
         }
 
         if (targetPosition != Vector3.zero && oldTargetPosition != targetPosition)
-        //if (targetPosition != Vector3.zero)
         {
-            //Debug.Log("Old Target " + oldTargetPosition);
-            //Debug.Log("New Target " + targetPosition);
-            //print("New order");
-
-            //if (forwardTargetAngle <= 45 || (forwardTargetAngle < 155 && targetDistance > 15) || (forwardTargetAngle >= 155 && targetDistance > 15))
             if (forwardTargetAngle <= 45 || targetDistance > 15)
             {
                 moveMode = 1;
