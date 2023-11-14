@@ -67,7 +67,7 @@ public class RTSCamera : MonoBehaviour
         for (int index = 0; index < raycastResults.Count; index++)
         {
             RaycastResult curRaysastResult = raycastResults[index];
-            //Debug.Log(curRaysastResult.gameObject.layer + ", " + curRaysastResult.gameObject.name);
+            Debug.Log(curRaysastResult.gameObject.layer + ", " + curRaysastResult.gameObject.name);
             //Debug.DrawLine(transform.position, curRaysastResult.worldPosition * 10, Color.red);
             if (curRaysastResult.gameObject.layer == LayerMask.NameToLayer("UI"))
                 return true;

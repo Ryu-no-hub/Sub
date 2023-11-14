@@ -8,6 +8,7 @@ public class KeyVisualization : MonoBehaviour
     public TMP_Text infoText;
     private void Update()
     {
+        //print(transform.gameObject.name);
         if (Input.GetKey(KeyCode.LeftShift))
             infoText.text = "HOLDING SHIFT";
         else

@@ -9,7 +9,7 @@ public class MoveSubV8 : MonoBehaviour, ISelectable
 
     public GameObject pillarPrefab;
     private Rigidbody subRb;
-    private float force = 2f;
+    private float force = 4f;
     private float speed;
     private float myDrag = 1f;
     int moveMode = 0;
@@ -37,7 +37,7 @@ public class MoveSubV8 : MonoBehaviour, ISelectable
     private ParticleSystem bubblesLeft;
     private ParticleSystem bubblesRight;
     private GameObject selectionSprite;
-    private float torqueForce = 0.02f;
+    //private float torqueForce = 0.02f;
     private float angleUp;
     //private bool newOrderFlag = false;
 
@@ -134,6 +134,7 @@ public class MoveSubV8 : MonoBehaviour, ISelectable
             dragDeceleration = (startVelocity.magnitude - newVelocity.magnitude) / Time.deltaTime;
             velocityTargetAngle = Vector3.Angle(startVelocity, newDirection);
 
+            //print("stopTime = " + stopTime + ", real stop time = " + speed / dragDeceleration);
             if (targetDistance < 2 ||
                     ((stopTime < speed / dragDeceleration)
                     && (velocityTargetAngle < 10 || velocityTargetAngle > 170))
@@ -145,7 +146,7 @@ public class MoveSubV8 : MonoBehaviour, ISelectable
                 bubblesRight.Stop();
             }
         }
-        else if (angleUp > 5) // Align
+        else if (angleUp > 1) // Align
         {
             print("Aligning,  angle = " + angleUp);
 
@@ -195,6 +196,7 @@ public class MoveSubV8 : MonoBehaviour, ISelectable
             Debug.Log("Transform up = " + transform.up);
             Debug.Log("angleUp = " + angleUp);
 
+            subRb.angularVelocity = Vector3.zero;
             transform.localEulerAngles = new Vector3(0, transform.localEulerAngles.y, 0);
         }
 
@@ -252,7 +254,7 @@ public class MoveSubV8 : MonoBehaviour, ISelectable
         //Debug.DrawRay(currentPos, forwardDirection* 100, Color.cyan);
 
         subRb.AddForce(force * backTrustCoeff * Mathf.Clamp01(targetDistance / decreaseThrustNearCoeff) * Mathf.Clamp(mode, -1, 1) * forwardDirection);
-        //print("Applying force " + force * backTrustCoeff * Mathf.Clamp01(targetDistance / decreaseThrustNearCoeff));
+        print("Applying force " + force * backTrustCoeff * Mathf.Clamp01(targetDistance / decreaseThrustNearCoeff) * Mathf.Clamp(mode, -1, 1));
 
         if (mode == 1 && transform.rotation == bubblesLeft.transform.rotation)
         {

@@ -12,6 +12,7 @@ public class PlayerInput : MonoBehaviour
     private Transform orderTransform;
     public GameObject subPrefab;
     bool isQDown = false;
+    int N = 0;
 
     private float myTerrainHeight;
     // Start is called before the first frame update
@@ -47,7 +48,6 @@ public class PlayerInput : MonoBehaviour
 
                 // Arrange the units in a line
                 int i;
-                //List<Vector3> unitPos = new List<Vector3>();
                 Vector3[] targetPointsInLine = new Vector3[totalUnits];
                 Vector3 wayLine = Vector3.zero;
 
@@ -62,7 +62,6 @@ public class PlayerInput : MonoBehaviour
                 //Debug.Log("wayLine final = " + wayLine);
 
                 // Calculate the starting position of the line
-                //Vector3 lineStart = raycastHit.point - (lineLength / 2) * orderTransform.right;
                 Vector3 avgDirection = (wayLine - raycastHit.point);
                 avgDirection.y = 0;
                 //Debug.Log("avgDirection.normalized = " + avgDirection.normalized);
@@ -83,7 +82,6 @@ public class PlayerInput : MonoBehaviour
                     int minDistanceIndex = 0;
                     for (i = 0; i < totalUnits; i++)
                     {
-                        //targetPointsInLine[i] = lineStart + i * unitSpacing * orderTransform.right;
                         float distToTargetPoint = Vector3.Distance(unit.transform.position, targetPointsInLine[i]);
                         //print("compare: unitpos = " + unit.transform.position + ", target = " + targetPointsInLine[i]);
                         //print("compare: distToTargetPoint " + distToTargetPoint + " | " + minDistance + " = minDistance" + " unit: " + unit.name);
@@ -93,19 +91,13 @@ public class PlayerInput : MonoBehaviour
                             minDistanceIndex = i;
                         }
                     }
-                    unit.GetComponent<MoveSubV8>().targetPosition = targetPointsInLine[minDistanceIndex];
+                    unit.GetComponent<MoveSubV9>().targetPosition = targetPointsInLine[minDistanceIndex];
                     targetPointsInLine[minDistanceIndex] = new Vector3(int.MaxValue, int.MaxValue, int.MaxValue);
                     //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().targetPosition + " for " + unit.name);
-                    print("Target position = " + unit.GetComponent<MoveSubV8>().targetPosition + " for " + unit.name);
-                    Debug.DrawLine(unit.transform.position, unit.GetComponent<MoveSubV8>().targetPosition, Color.black, 3.0f);
+                    print("Target position = " + unit.GetComponent<MoveSubV9>().targetPosition + " for " + unit.name);
+                    Debug.DrawLine(unit.transform.position, unit.GetComponent<MoveSubV9>().targetPosition, Color.black, 10.0f);
                 }
 
-                //i = 0;
-                //foreach (GameObject unit in selectedUnits)
-                //{
-                //    unit.GetComponent<MoveSubV7>().targetPosition = lineStart + i * unitSpacing * orderTransform.right;
-                //    i++;
-                //}
                 selectedUnits.Clear();
             }
         }
@@ -117,7 +109,9 @@ public class PlayerInput : MonoBehaviour
             if(Physics.Raycast(ray_spawn,out RaycastHit rayCastHit_spawn, float.MaxValue))
             {
                 Vector3 spawnPoint = rayCastHit_spawn.point + new Vector3 (0, 3, 0);
-                Instantiate(subPrefab, spawnPoint, subPrefab.transform.rotation);
+                var newSub = Instantiate(subPrefab, spawnPoint, subPrefab.transform.rotation);
+                newSub.transform.parent = GameObject.Find("Units").transform;
+                newSub.name = subPrefab.name + " " + N++;
             }
         }
         if (Input.GetKeyUp(KeyCode.Q)) isQDown = false;

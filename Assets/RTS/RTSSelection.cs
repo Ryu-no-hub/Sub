@@ -52,7 +52,7 @@ public class RTSSelection : MonoBehaviour
 
     private void Start()
     {
-        UIPanel = GameObject.Find("Panel").gameObject;
+       UIPanel = GameObject.Find("Panel").gameObject;
     }
 
     /// <summary>
@@ -147,10 +147,10 @@ public class RTSSelection : MonoBehaviour
         for (int i = 0; i < hits.Length; ++i)
         {
             ISelectable selectable = hits[i].collider.GetComponentInParent<ISelectable>();
-
             if (selectable == null)
                 continue;
 
+            print(selectable.gameObject.name + ", team = " + selectable.gameObject.GetComponent<MoveSubV9>().team);
             StartCoroutine(ProcessRaycastHit(selectable));
             return; // We are only interested in the first hit, so we can stop here
         }
@@ -275,15 +275,18 @@ public class RTSSelection : MonoBehaviour
     {
         switch (selectionModifier)
         {
-            // Add if it's not already added
+            // Add if it's not already added, otherwise remove
             case SelectionModifier.Additive:
-                TryAddToSelected(selectable);
+                if (!toBeSelected.Contains(selectable))
+                    TryAddToSelected(selectable);
+                else
+                    TryRemoveFromSelected(selectable);
                 break;
 
             // Remove if it has been added
-            case SelectionModifier.Subtractive:
-                TryRemoveFromSelected(selectable);
-                break;
+            //case SelectionModifier.Subtractive:
+            //    TryRemoveFromSelected(selectable);
+            //    break;
         }
     }
 
