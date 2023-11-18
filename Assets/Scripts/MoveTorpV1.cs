@@ -6,9 +6,9 @@ public class MoveTorpV1 : MonoBehaviour
 {
     //public GameObject pillarPrefab;
     private Rigidbody torpRb;
-    private float force = 4f;
+    private float force = 60;
     private float speed;
-    private float myDrag = 0.8f;
+    private float myDrag = 4;
     public int moveMode=0;
 
     Vector3 forwardDirection;
@@ -21,6 +21,7 @@ public class MoveTorpV1 : MonoBehaviour
     Quaternion new_rotation;
     int rotationSpeedCoeff = 125;
     float ThrustDirectionCoeff;
+    float timer;
 
     public Vector3 targetPosition;
     private ParticleSystem bubbles;
@@ -37,6 +38,9 @@ public class MoveTorpV1 : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        timer += Time.deltaTime;
+        if (timer < 0.6) return;
+
         // —имул€ци€ сопротивлени€ среды
         startVelocity = torpRb.velocity;
         newVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
@@ -52,9 +56,9 @@ public class MoveTorpV1 : MonoBehaviour
             forwardDirection = transform.forward;
             forwardTargetAngle = Vector3.Angle(forwardDirection, newDirection);
             targetDistance = newDirection.magnitude;
-            print("targetPosition = " + targetPosition);
+            //print("targetPosition = " + targetPosition);
 
-            Debug.DrawRay(currentPos, forwardDirection * 100, Color.green);
+            Debug.DrawRay(currentPos, forwardDirection * 10, Color.green);
             Move(1);
         }
         else {print("No target!");}
@@ -66,7 +70,8 @@ public class MoveTorpV1 : MonoBehaviour
         // ѕоворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
         transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, Mathf.Sqrt(speed * rotationSpeedCoeff) * Time.deltaTime);
         //transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, speed * rotationSpeedCoeff * Time.deltaTime);
-        Debug.DrawLine(currentPos, newDirection, Color.red);
+        Debug.DrawLine(currentPos, targetPosition, Color.red);
+        //print("currentPos = " + currentPos);
 
         // “€га вперЄд
         torpRb.AddForce(force * ThrustDirectionCoeff * Mathf.Clamp01(targetDistance) * Mathf.Clamp(mode, -1, 1) * forwardDirection);

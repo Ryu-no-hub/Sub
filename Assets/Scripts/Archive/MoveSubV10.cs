@@ -12,7 +12,7 @@ public class MoveSubV10 : MonoBehaviour, ISelectable
     private float force = 4f;
     private float speed;
     private float myDrag = 0.8f;
-    private int ammo = 15;
+    private int ammo = 10;
     public int moveMode;
     private float reloadTime = 3f;
 
@@ -171,8 +171,9 @@ public class MoveSubV10 : MonoBehaviour, ISelectable
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, Mathf.Sqrt(rotationSpeedCoeff) * Time.deltaTime);
                 Debug.DrawRay(currentPos, (newDirection - startVelocity) * 100, Color.grey);
             }
-            else if (!atacking && team == 1)
+            else if (!atacking && team == 1 && ammo>0)
             {
+                ammo--;
                 atacking = true;
                 StartCoroutine(Shoot());
             }

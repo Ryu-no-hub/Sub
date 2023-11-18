@@ -37,7 +37,6 @@ public class MoveSubV7 : MonoBehaviour, ISelectable
     private ParticleSystem bubblesLeft;
     private ParticleSystem bubblesRight;
     private GameObject selectionSprite;
-    private float torqueForce = 0.05f;
     private float angleUp;
     //private bool newOrderFlag = false;
 

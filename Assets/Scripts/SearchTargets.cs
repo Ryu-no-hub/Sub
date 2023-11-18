@@ -4,14 +4,13 @@ using UnityEngine;
 
 public class SearchTargets : MonoBehaviour
 {
-    private List<GameObject> allUnits;
+    //private bool searching = false;
+    //private MoveSubV11 unitScript;
+
     // Start is called before the first frame update
     void Start()
     {
-        //foreach (Transform child in transform)
-        //{
-        //    allUnits.Add(child.gameObject);
-        //}
+
     }
 
     // Update is called once per frame
@@ -20,30 +19,37 @@ public class SearchTargets : MonoBehaviour
         foreach (Transform child in transform)
         {
             //print("child = " + child.name);
-            StartCoroutine(SearchTarget(child));
+            MoveSubV11 unitScript = child.GetComponent<MoveSubV11>();
+            if (unitScript.moveMode == 0 && !unitScript.searching)
+            {
+                unitScript.searching = true;
+                print(child + " Started search routine");
+                StartCoroutine(SearchTarget(child));
+            }
         }
     }
     private IEnumerator SearchTarget(Transform unit)
     {
-        yield return new WaitForSeconds(1);
-        //print(unit.name);
-        MoveSubV10 unitScript = unit.GetComponent<MoveSubV10>();
-        if (unitScript.moveMode == 0)
+        print(unit.name + " Entered search routine");
+        MoveSubV11 unitScript = unit.GetComponent<MoveSubV11>();
+        print(unit.name + " moveMode = " + unitScript.moveMode);
+        while (unitScript.moveMode == 0)
         {
+            yield return new WaitForSeconds(0.5f);
             float minDistance = float.MaxValue;
             float distance;
             GameObject currentTarget = null;
 
             foreach (Transform child in transform)
             {
-                //print("Checking targets for: " + unit.name + ", child: " + child);
+                print(unit.name + " Checking potential target: " + child);
                 if (child.transform == unit) continue;
 
-                if (child.GetComponent<MoveSubV10>().team == unitScript.team) continue;
-                //print("PASSD ");
+                if (child.GetComponent<MoveSubV11>().team == unitScript.team) continue;
+                print(unit.name + " PASSED CHECKS ");
 
                 distance = Vector3.Distance(unit.position, child.position);
-                if (distance < minDistance)
+                if (distance < 40 && distance < minDistance)
                 {
                     minDistance = distance;
                     currentTarget = child.gameObject;
@@ -51,6 +57,5 @@ public class SearchTargets : MonoBehaviour
             }
             unitScript.target = currentTarget;
         }
-
     }
 }

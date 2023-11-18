@@ -311,14 +311,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 316290037}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fcacdd9e88dc840409176302b8e8a428, type: 3}
+  m_Script: {fileID: 11500000, guid: bd92ca35bcca9fe4fb3062466589ae56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   moveMode: 0
+  searching: 0
   targetPosition: {x: 0, y: 0, z: 0}
   oldTargetPosition: {x: 0, y: 0, z: 0}
   target: {fileID: 0}
-  torpPrefab: {fileID: 0}
+  torpPrefab: {fileID: 1998070163341847597, guid: 1bbace2b3bcd04b42bb5e6cdb3f543b6, type: 3}
   team: 2
 --- !u!1 &352193452
 GameObject:
@@ -11551,10 +11552,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 433794154}
     m_Modifications:
-    - target: {fileID: 4840685183360232135, guid: 7010515b62548cd4180ac03c4ea64ea0, type: 3}
-      propertyPath: torpPrefab
-      value: 
-      objectReference: {fileID: 1998070163341847597, guid: 1bbace2b3bcd04b42bb5e6cdb3f543b6, type: 3}
+    - target: {fileID: 3520525532259823544, guid: 7010515b62548cd4180ac03c4ea64ea0, type: 3}
+      propertyPath: m_Lightmapping
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7341274820138349636, guid: 7010515b62548cd4180ac03c4ea64ea0, type: 3}
       propertyPath: m_LocalPosition.x
       value: 97.4
@@ -11600,6 +11601,7 @@ PrefabInstance:
       value: ST_Terminator
       objectReference: {fileID: 0}
     m_RemovedComponents:
+    - {fileID: 0}
     - {fileID: 0}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

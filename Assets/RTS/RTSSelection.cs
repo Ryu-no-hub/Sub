@@ -150,7 +150,7 @@ public class RTSSelection : MonoBehaviour
             if (selectable == null)
                 continue;
 
-            print(selectable.gameObject.name + ", team = " + selectable.gameObject.GetComponent<MoveSubV10>().team);
+            print(selectable.gameObject.name + ", team = " + selectable.gameObject.GetComponent<MoveSubV11>().team);
             StartCoroutine(ProcessRaycastHit(selectable));
             return; // We are only interested in the first hit, so we can stop here
         }
