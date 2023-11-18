@@ -5,13 +5,13 @@ using UnityEngine;
 public class MoveSubV9 : MonoBehaviour, ISelectable
 {
     private Camera mainCamera;
-    private LayerMask layerMask;
+    private LayerMask layerMask = (1 << 3);
 
     //public GameObject pillarPrefab;
     private Rigidbody subRb;
     private float force = 4f;
     private float speed;
-    private float myDrag = 1f;
+    private float myDrag = 0.8f;
     int moveMode = 0;
 
     Vector3 forwardDirection;
@@ -23,7 +23,7 @@ public class MoveSubV9 : MonoBehaviour, ISelectable
     float targetDistance;
     Quaternion new_rotation;
     float velocityTargetAngle;
-    int rotationSpeedCoeff;
+    int rotationSpeedCoeff = 1500;
     float ThrustDistCoeff;
     float ThrustDirectionCoeff;
     float stopTime;
@@ -65,10 +65,11 @@ public class MoveSubV9 : MonoBehaviour, ISelectable
         newDirection = targetPosition - currentPos;
         forwardTargetAngle = Vector3.Angle(forwardDirection, newDirection);
         targetDistance = newDirection.magnitude;
-        rotationSpeedCoeff = 1500;
+        //rotationSpeedCoeff = 1500;
         selectionSprite = transform.Find("Selection Sprite").gameObject;
-        mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
-        layerMask = (1 << 3);
+        //mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
+        mainCamera = Camera.main;
+        //layerMask = (1 << 3);
     }
 
     // Update is called once per frame
@@ -121,13 +122,14 @@ public class MoveSubV9 : MonoBehaviour, ISelectable
             dragDeceleration = (startVelocity.magnitude - newVelocity.magnitude) / Time.deltaTime;
             velocityTargetAngle = Vector3.Angle(startVelocity, newDirection);
 
-            //print("velocityTargetAngle = " + velocityTargetAngle);
-            //print("stopTime = " + stopTime + ", real stop time = " + speed / dragDeceleration);
-            //print("targetDistance = " + targetDistance);
+            //print("startVelocity.magnitude = " + startVelocity.magnitude + ", newVelocity.magnitude = " + newVelocity.magnitude);
+            //print("stopTime = " + stopTime + ", targetDistance = " + targetDistance  + ", speed = " + speed );
+            //print("real stop time = " + speed / dragDeceleration * myDrag);
+            //print("dragDeceleration = " + dragDeceleration);
 
             if (targetDistance < 2 || // погрешность достижения точки
-                    ((stopTime < speed / dragDeceleration)
-                    && (velocityTargetAngle < 10 || velocityTargetAngle > 170)) // направление примерно на точку, чтобы не промахиваться
+                    ((stopTime < speed / dragDeceleration * myDrag)
+                    && (velocityTargetAngle < 5 || velocityTargetAngle > 175)) // направление примерно на точку, чтобы не промахиваться
                     )
             {
                 moveMode = 0;

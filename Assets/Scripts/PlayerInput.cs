@@ -18,9 +18,9 @@ public class PlayerInput : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        print("???"+subPrefab);
-        print(transform.position);
-        print(gameObject.name);
+        //print("???"+subPrefab);
+        //print(transform.position);
+        //print(gameObject.name);
     }
 
     // Update is called once per frame
@@ -91,11 +91,11 @@ public class PlayerInput : MonoBehaviour
                             minDistanceIndex = i;
                         }
                     }
-                    unit.GetComponent<MoveSubV9>().targetPosition = targetPointsInLine[minDistanceIndex];
+                    unit.GetComponent<MoveSubV10>().targetPosition = targetPointsInLine[minDistanceIndex];
                     targetPointsInLine[minDistanceIndex] = new Vector3(int.MaxValue, int.MaxValue, int.MaxValue);
                     //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().targetPosition + " for " + unit.name);
-                    print("Target position = " + unit.GetComponent<MoveSubV9>().targetPosition + " for " + unit.name);
-                    Debug.DrawLine(unit.transform.position, unit.GetComponent<MoveSubV9>().targetPosition, Color.black, 10.0f);
+                    print("Target position = " + unit.GetComponent<MoveSubV10>().targetPosition + " for " + unit.name);
+                    Debug.DrawLine(unit.transform.position, unit.GetComponent<MoveSubV10>().targetPosition, Color.black, 10.0f);
                 }
 
                 selectedUnits.Clear();
