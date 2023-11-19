@@ -11,9 +11,9 @@ public class KeyVisualization : MonoBehaviour
         //print(transform.gameObject.name);
         if (Input.GetKey(KeyCode.LeftShift))
             infoText.text = "HOLDING SHIFT";
-        else
-        if (Input.GetKey(KeyCode.LeftControl))
-            infoText.text = "HOLDING CTRL";
+        //else
+        //if (Input.GetKey(KeyCode.LeftControl))
+        //    infoText.text = "HOLDING CTRL";
         else
             infoText.text = "";
     }

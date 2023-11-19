@@ -52,7 +52,18 @@ public class RTSSelection : MonoBehaviour
 
     private void Start()
     {
-       UIPanel = GameObject.Find("Panel").gameObject;
+       //UIPanel = GameObject.Find("Panel").gameObject;
+        RectTransform[] rectTransforms = GameObject.FindObjectsOfType<RectTransform>(true);
+        foreach(RectTransform child in rectTransforms)
+        {
+            //print("name = " + child.gameObject.name);
+            if (child.gameObject.name == "Panel")
+            {
+                UIPanel = child.gameObject;
+                break;
+            }
+        }
+        print("UIPanel.name = " + UIPanel.name);
     }
 
     /// <summary>
@@ -150,7 +161,7 @@ public class RTSSelection : MonoBehaviour
             if (selectable == null)
                 continue;
 
-            print(selectable.gameObject.name + ", team = " + selectable.gameObject.GetComponent<MoveSubV11>().team);
+            print(selectable.gameObject.name + ", team = " + selectable.gameObject.GetComponent<MoveSubV12>().team);
             StartCoroutine(ProcessRaycastHit(selectable));
             return; // We are only interested in the first hit, so we can stop here
         }
@@ -254,6 +265,7 @@ public class RTSSelection : MonoBehaviour
         // 3. Select all the objects in toBeSelected
         for (int i = 0; i < toBeSelected.Count; ++i)
         {
+            UIPanel.SetActive(true);
             toBeSelected[i].Select();
             string unitName = toBeSelected[i].gameObject.name;
             //print("unitName " + unitName);
@@ -331,6 +343,7 @@ public class RTSSelection : MonoBehaviour
                 print("child.name = " + child.name);
                 child.gameObject.SetActive(false);
             }
+            UIPanel.SetActive(false);
         }
     }
 

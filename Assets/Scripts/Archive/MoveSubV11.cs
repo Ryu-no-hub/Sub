@@ -93,7 +93,9 @@ public class MoveSubV11 : MonoBehaviour, ISelectable
         // Отслеживание угла с вертикалью, чтобы сохранять гАризонтальную ориентацию вне активного движения
         angleUp = Vector3.Angle(Vector3.up, transform.up);
 
-
+        currentPos = transform.position;
+        targetDir = targetPosition - currentPos;
+        targetDistance = targetDir.magnitude;
         //print("Timer = " + timer);
         //print("counter = " + counter);
         //print("Time.frameCount = " + Time.frameCount);
@@ -102,12 +104,9 @@ public class MoveSubV11 : MonoBehaviour, ISelectable
 
         if (moveMode != 0)
         {
-            currentPos = transform.position;
-            targetDir = targetPosition - currentPos;
             new_rotation = Quaternion.LookRotation(targetDir - newVelocity);
             forwardDirection = transform.forward;
             forwardTargetAngle = Vector3.Angle(forwardDirection, targetDir);
-            targetDistance = targetDir.magnitude;
 
             Debug.DrawRay(currentPos, forwardDirection * 100, Color.green);
 
@@ -162,7 +161,7 @@ public class MoveSubV11 : MonoBehaviour, ISelectable
             float xDegreeDelta = (transform.localEulerAngles.x - 180) * 0.2f;
             float zDegreeDelta = (transform.localEulerAngles.z - 180) * 0.2f;
 
-            print(gameObject.name + " Aligning... Movemode = " + moveMode);
+            print(gameObject.name + " Aligning...");
             transform.localEulerAngles += new Vector3(xDegreeDelta, 0, zDegreeDelta) * Time.deltaTime;
         }
         else if (!aligned && angleUp != 0) // Жёсткое выравнивание и остановка вращения
@@ -200,9 +199,9 @@ public class MoveSubV11 : MonoBehaviour, ISelectable
             }
             else if (atacking && team == 1 && ammo > 0)
             {
-                print("Timer = " + timer);
-                print("timer % 3f = " + (timer % 3f));
-                print("lastTimerRemainder = " + lastTimerRemainder);
+                //print("Timer = " + timer);
+                //print("timer % 3f = " + (timer % 3f));
+                //print("lastTimerRemainder = " + lastTimerRemainder);
                 if (lastTimerRemainder - (timer % 3) > 1) 
                 {
                     print("SHOOT!");
@@ -293,7 +292,7 @@ public class MoveSubV11 : MonoBehaviour, ISelectable
             Physics.IgnoreCollision(gameObject.GetComponent<BoxCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
             forwardDirection = transform.forward;
             //torpedo.GetComponent<Rigidbody>().velocity = subRb.velocity + 8 * forwardDirection.normalized;
-            torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 50 * forwardDirection.normalized, ForceMode.Impulse);
+            torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 10 * forwardDirection.normalized, ForceMode.Impulse);
 
             //Debug.DrawRay(transform.position, subRb.velocity + 8 * forwardDirection.normalized, Color.blue, 2);
 
