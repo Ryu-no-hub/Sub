@@ -161,35 +161,11 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: -50, y: -50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &240907815 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7974364352938372862, guid: 7010515b62548cd4180ac03c4ea64ea0, type: 3}
-  m_PrefabInstance: {fileID: 371676042432376590}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &283330010 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7341274820138349636, guid: 7010515b62548cd4180ac03c4ea64ea0, type: 3}
   m_PrefabInstance: {fileID: 371676042432376590}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &283330015
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 240907815}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0336ba4f2d208fd41892a8db1f179829, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  moveMode: 0
-  searching: 0
-  targetPosition: {x: 0, y: 0, z: 0}
-  oldTargetPosition: {x: 0, y: 0, z: 0}
-  target: {fileID: 0}
-  torpPrefab: {fileID: 4674429556456541482, guid: 1bbace2b3bcd04b42bb5e6cdb3f543b6, type: 3}
-  team: 1
 --- !u!1 &316290037
 GameObject:
   m_ObjectHideFlags: 0
@@ -336,15 +312,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 316290037}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0336ba4f2d208fd41892a8db1f179829, type: 3}
+  m_Script: {fileID: 11500000, guid: 9519e157ec82de04bacccc38d5f31d4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  torpPrefab: {fileID: 0}
+  target: {fileID: 0}
+  moveDestination: {x: 0, y: 0, z: 0}
   moveMode: 0
   searching: 0
-  targetPosition: {x: 0, y: 0, z: 0}
-  oldTargetPosition: {x: 0, y: 0, z: 0}
-  target: {fileID: 0}
-  torpPrefab: {fileID: 0}
+  attackRange: 40
   team: 2
 --- !u!1 &352193452
 GameObject:
@@ -11808,13 +11784,10 @@ PrefabInstance:
     - {fileID: 0}
     - {fileID: 0}
     - {fileID: 0}
-    - {fileID: 5425283182887483351, guid: 7010515b62548cd4180ac03c4ea64ea0, type: 3}
+    - {fileID: 0}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7974364352938372862, guid: 7010515b62548cd4180ac03c4ea64ea0, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 283330015}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7010515b62548cd4180ac03c4ea64ea0, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

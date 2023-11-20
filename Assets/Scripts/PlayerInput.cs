@@ -120,9 +120,11 @@ public class PlayerInput : MonoBehaviour
                     minDistanceIndex = i;
                 }
             }
-            unit.GetComponent<MoveSubV12>().targetPosition = targetPointsInLine[minDistanceIndex];
+            unit.GetComponent<MoveSubV13>().moveDestination = targetPointsInLine[minDistanceIndex];
+            unit.GetComponent<MoveSubV13>().target = null;
+
             print("Target position = " + targetPointsInLine[minDistanceIndex] + " for " + unit.name);
-            //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().targetPosition + " for " + unit.name);
+            //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().moveDestinationition + " for " + unit.name);
             Debug.DrawLine(unit.transform.position, targetPointsInLine[minDistanceIndex], Color.black, 10.0f);
             targetPointsInLine[minDistanceIndex] = new Vector3(int.MaxValue, int.MaxValue, int.MaxValue);
         }
@@ -132,9 +134,21 @@ public class PlayerInput : MonoBehaviour
         foreach(GameObject child in selectedUnits)
         {
             if (child == target) continue;
-            child.GetComponent<MoveSubV12>().target = target;
+            child.GetComponent<MoveSubV13>().target = target;
             print(target.name + " set as target for " + child.name);
-            print(child.GetComponent<MoveSubV12>().target.name);
+            print(child.GetComponent<MoveSubV13>().target.name);
+
+            int unitRange = child.GetComponent<MoveSubV13>().attackRange;
+
+            if (Vector3.Distance(child.transform.position, target.transform.position) > unitRange)
+            {
+                Vector3 targetDir = target.transform.position - child.transform.position;
+                child.GetComponent<MoveSubV13>().moveDestination = target.transform.position - (unitRange - 2) * targetDir.normalized ;
+            }
+            else
+            {
+                child.GetComponent<MoveSubV13>().Stop();
+            }
         }
     }
 }

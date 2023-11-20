@@ -9841,7 +9841,7 @@ PrefabInstance:
       addedObject: {fileID: 1238393419229814495}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3859b8e5bc5ac1446a0d02e6ae447fbf, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 5425283182887483351}
+      addedObject: {fileID: -8245174369477770866}
   m_SourcePrefab: {fileID: 100100000, guid: 3859b8e5bc5ac1446a0d02e6ae447fbf, type: 3}
 --- !u!4 &7341274820138349636 stripped
 Transform:
@@ -9943,7 +9943,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &5425283182887483351
+--- !u!114 &-8245174369477770866
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9952,13 +9952,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 7974364352938372862}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0336ba4f2d208fd41892a8db1f179829, type: 3}
+  m_Script: {fileID: 11500000, guid: 9519e157ec82de04bacccc38d5f31d4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveMode: 0
+  torpPrefab: {fileID: 4674429556456541482, guid: 1bbace2b3bcd04b42bb5e6cdb3f543b6, type: 3}
+  target: {fileID: 0}
   searching: 0
   targetPosition: {x: 0, y: 0, z: 0}
-  oldTargetPosition: {x: 0, y: 0, z: 0}
-  target: {fileID: 0}
-  torpPrefab: {fileID: 4674429556456541482, guid: 1bbace2b3bcd04b42bb5e6cdb3f543b6, type: 3}
+  moveMode: 0
   team: 1

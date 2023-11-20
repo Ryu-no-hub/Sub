@@ -4,47 +4,38 @@ using UnityEngine;
 
 public class MoveSubV12 : MonoBehaviour, ISelectable
 {
-    private Camera mainCamera;
-    private LayerMask layerMask = (1 << 3);
-
-    //public GameObject pillarPrefab;
     private Rigidbody subRb;
+    private ParticleSystem bubblesLeft, bubblesRight;
+    private GameObject selectionSprite;
+    public GameObject torpPrefab, target = null;
+
+    // Movement parameters
     private float force = 4f;
     private float speed;
     private float myDrag = 0.8f;
-    private int ammo = 20;
-    public int moveMode;
-    private float reloadTime = 3f;
+    private float ThrustDistCoeff = 0.1f, ThrustDirectionCoeff;
+    private int rotationSpeedCoeff = 1500, steadyRotationCoeff = 2;
 
-    Vector3 forwardDirection;
-    Vector3 currentPos;
-    Vector3 targetDir;
-    Vector3 startVelocity;
-    Vector3 newVelocity;
-    float forwardTargetAngle;
-    float targetDistance;
-    Quaternion new_rotation;
-    float velocityTargetAngle;
-    int rotationSpeedCoeff = 1500;
-    float ThrustDistCoeff;
-    float ThrustDirectionCoeff;
-    float stopTime;
-    float lastShotTime;
-    float dragDeceleration;
+    private float angleUp;
+
+    // Attack parameters
+    private float reloadTime = 3f;
+    private int ammo = 20;
+
+    private Vector3 currentPos, forwardDir, targetDir, startVelocity, slowedVelocity;
+    private Vector3 oldTargetPosition;
+    private Quaternion new_rotation;
+    private float forwardTargetAngle, velocityTargetAngle;
+    private float targetDistance;
+    private float stopTime, lastShotTime;
+    private float dragDeceleration;
     private bool aligned = true;
-    public bool searching ;   
-    private bool atacking = false;   
+    public bool searching = false;
+    private float timer;
+    //private bool atacking = false;   
 
     public Vector3 targetPosition;
-    public Vector3 oldTargetPosition;
-    private ParticleSystem bubblesLeft;
-    private ParticleSystem bubblesRight;
-    private GameObject selectionSprite;
-    private float angleUp;
-    public GameObject target = null;
-    public GameObject torpPrefab;
-    float timer;
-    RTSSelection selectionScript;
+    public int moveMode;
     
 
     public int team = 1;
@@ -71,15 +62,15 @@ public class MoveSubV12 : MonoBehaviour, ISelectable
         bubblesLeft = transform.Find("BubblesLeft").GetComponent<ParticleSystem>();
         bubblesRight = transform.Find("BubblesRight").GetComponent<ParticleSystem>();
         targetPosition = Vector3.zero;
-        forwardDirection = transform.forward;
+        forwardDir = transform.forward;
         currentPos = transform.position;
         targetDir = targetPosition - currentPos;
-        forwardTargetAngle = Vector3.Angle(forwardDirection, targetDir);
+        forwardTargetAngle = Vector3.Angle(forwardDir, targetDir);
         targetDistance = targetDir.magnitude;
         selectionSprite = transform.Find("Selection Sprite").gameObject;
-        mainCamera = Camera.main;
+        //mainCamera = Camera.main;
         moveMode = 0;
-        searching = false;
+        //searching ;
     }
 
     // Update is called once per frame
@@ -87,8 +78,8 @@ public class MoveSubV12 : MonoBehaviour, ISelectable
     {
         // Симуляция сопротивления среды
         startVelocity = subRb.velocity;
-        newVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
-        subRb.velocity = newVelocity;
+        slowedVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
+        subRb.velocity = slowedVelocity;
 
         // Отслеживание угла с вертикалью, чтобы сохранять гАризонтальную ориентацию вне активного движения
         angleUp = Vector3.Angle(Vector3.up, transform.up);
@@ -104,11 +95,11 @@ public class MoveSubV12 : MonoBehaviour, ISelectable
 
         if (moveMode != 0)
         {
-            new_rotation = Quaternion.LookRotation(targetDir - newVelocity);
-            forwardDirection = transform.forward;
-            forwardTargetAngle = Vector3.Angle(forwardDirection, targetDir);
+            new_rotation = Quaternion.LookRotation(targetDir - slowedVelocity);
+            forwardDir = transform.forward;
+            forwardTargetAngle = Vector3.Angle(forwardDir, targetDir);
 
-            Debug.DrawRay(currentPos, forwardDirection * 100, Color.green);
+            Debug.DrawRay(currentPos, forwardDir * 100, Color.green);
 
             target = null;
             print(gameObject.name + " target = null");
@@ -137,10 +128,10 @@ public class MoveSubV12 : MonoBehaviour, ISelectable
             // Проверка когда пора выключать двигатели
             speed = Vector3.Magnitude(subRb.velocity);
             stopTime = targetDistance / speed;
-            dragDeceleration = (startVelocity.magnitude - newVelocity.magnitude) / Time.deltaTime;
-            velocityTargetAngle = Vector3.Angle(newVelocity, targetDir);
+            dragDeceleration = (startVelocity.magnitude - slowedVelocity.magnitude) / Time.deltaTime;
+            velocityTargetAngle = Vector3.Angle(slowedVelocity, targetDir);
 
-            //print("startVelocity.magnitude = " + startVelocity.magnitude + ", newVelocity.magnitude = " + newVelocity.magnitude);
+            //print("startVelocity.magnitude = " + startVelocity.magnitude + ", slowedVelocity.magnitude = " + slowedVelocity.magnitude);
             //print("stopTime = " + stopTime + ", targetDistance = " + targetDistance  + ", speed = " + speed );
             //print("real stop time = " + speed / dragDeceleration * myDrag);
             //print("dragDeceleration = " + dragDeceleration);
@@ -180,16 +171,16 @@ public class MoveSubV12 : MonoBehaviour, ISelectable
         {
             currentPos = transform.position;
             targetDir = target.transform.position - currentPos;
-            if (Vector3.Angle(transform.forward, targetDir) > 0.5)
+            if (Vector3.Angle(transform.forward, targetDir) > 0.5) // Поворот на цель
             {
                 //print(transform.name + " Turning to target " + moveMode);
                 //print("Vector3.Angle(transform.forward, targetDir) = " + Vector3.Angle(transform.forward, targetDir));
-                new_rotation = Quaternion.LookRotation(targetDir - newVelocity);
-                forwardDirection = transform.forward;
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, Mathf.Sqrt(rotationSpeedCoeff) * Time.deltaTime);
-                Debug.DrawRay(currentPos, (targetDir - newVelocity) * 100, Color.grey);
+                new_rotation = Quaternion.LookRotation(targetDir - slowedVelocity);
+                forwardDir = transform.forward;
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, steadyRotationCoeff * Mathf.Sqrt(rotationSpeedCoeff) * Time.deltaTime);
+                Debug.DrawRay(currentPos, (targetDir - slowedVelocity) * 100, Color.grey);
             }
-            else if (team == 1 && ammo > 0 && (lastShotTime == 0 || timer - lastShotTime > 3))
+            else if (team == 1 && ammo > 0 && (lastShotTime == 0 || timer - lastShotTime > reloadTime))
             {
                 ammo--;
                 //atacking = true;
@@ -211,10 +202,10 @@ public class MoveSubV12 : MonoBehaviour, ISelectable
         {
             aligned = false;
             //atacking = false;
-            forwardDirection = transform.forward;
+            forwardDir = transform.forward;
             currentPos = transform.position;
             targetDir = targetPosition - currentPos;
-            forwardTargetAngle = Vector3.Angle(forwardDirection, targetDir);
+            forwardTargetAngle = Vector3.Angle(forwardDir, targetDir);
             targetDistance = targetDir.magnitude;
             if (forwardTargetAngle <= 45 || targetDistance > 20)
             {
@@ -237,27 +228,23 @@ public class MoveSubV12 : MonoBehaviour, ISelectable
     }
     void Move(int mode = 1)
     {
-        ThrustDistCoeff = 0.1f;
         if (mode == 1)
         {
             ThrustDirectionCoeff = 1;
         }
-        else if(mode == -1)
+        else 
         {// Движение задом, разворачиваясь к точке передом
             ThrustDirectionCoeff = 0.5f;
-        }
-        else
-        {// Движение задом на точку
-            ThrustDirectionCoeff = 0.5f;
-            new_rotation *= Quaternion.AngleAxis(Vector3.Angle(targetDir, forwardDirection), Vector3.up);
+            if (mode == -2) // Движение задом на точку
+                new_rotation *= Quaternion.AngleAxis(Vector3.Angle(targetDir, forwardDir), Vector3.up);
         }
 
         // Поворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
         transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, Mathf.Sqrt(speed * rotationSpeedCoeff) * Time.deltaTime);
-        Debug.DrawRay(currentPos, (targetDir - newVelocity) * 100, Color.red);
+        Debug.DrawRay(currentPos, (targetDir - slowedVelocity) * 100, Color.red);
 
         // Тяга вперёд
-        subRb.AddForce(force * ThrustDirectionCoeff * Mathf.Clamp01(targetDistance * ThrustDistCoeff) * Mathf.Clamp(mode, -1, 1) * forwardDirection);
+        subRb.AddForce(force * ThrustDirectionCoeff * Mathf.Clamp01(targetDistance * ThrustDistCoeff) * Mathf.Clamp(mode, -1, 1) * forwardDir);
         //print("Applying force " + force * ThrustDirectionCoeff * Mathf.Clamp01(targetDistance * ThrustDistCoeff) * Mathf.Clamp(mode, -1, 1));
 
         // Изменение направления пузырьков
@@ -277,43 +264,45 @@ public class MoveSubV12 : MonoBehaviour, ISelectable
             bubblesRight.Play();
         }
     }
-    private IEnumerator Shoot_C()
-    {
-        //if (ammo>0 && target != null && moveMode==0)
-        while (atacking)
-        {
-            GameObject torpedo = Instantiate(torpPrefab, transform.position + 2 * transform.forward, transform.rotation);
-            Physics.IgnoreCollision(gameObject.GetComponent<BoxCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
-            forwardDirection = transform.forward;
-            //torpedo.GetComponent<Rigidbody>().velocity = subRb.velocity + 8 * forwardDirection.normalized;
-            torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 50 * forwardDirection.normalized, ForceMode.Impulse);
 
-            //Debug.DrawRay(transform.position, subRb.velocity + 8 * forwardDirection.normalized, Color.blue, 2);
+    //private IEnumerator Shoot_C()
+    //{
+    //    //if (ammo>0 && target != null && moveMode==0)
+    //    while (atacking)
+    //    {
+    //        GameObject torpedo = Instantiate(torpPrefab, transform.position + 2 * transform.forward, transform.rotation);
+    //        Physics.IgnoreCollision(gameObject.GetComponent<BoxCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
+    //        forwardDir = transform.forward;
+    //        //torpedo.GetComponent<Rigidbody>().velocity = subRb.velocity + 8 * forwardDir.normalized;
+    //        torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 50 * forwardDir.normalized, ForceMode.Impulse);
 
-            //print("subRb.velocity = " + subRb.velocity);
-            //print("Torpedo Direction = " + (transform.position + subRb.velocity + 6 * forwardDirection.normalized));
-            //print("forwardDirection = " + forwardDirection.normalized);
-            //print("10xforwardDirection = " + 10 * forwardDirection.normalized);
+    //        //Debug.DrawRay(transform.position, subRb.velocity + 8 * forwardDir.normalized, Color.blue, 2);
 
-            torpedo.GetComponent<MoveTorpV1>().SetTarget(target);
-            print(gameObject.name + " Instantiate TORPEDO with target = " + target.name);
-            yield return new WaitForSeconds(reloadTime);
-        }
-    }
+    //        //print("subRb.velocity = " + subRb.velocity);
+    //        //print("Torpedo Direction = " + (transform.position + subRb.velocity + 6 * forwardDir.normalized));
+    //        //print("forwardDir = " + forwardDir.normalized);
+    //        //print("10xforwardDir = " + 10 * forwardDir.normalized);
+
+    //        torpedo.GetComponent<MoveTorpV1>().SetTarget(target);
+    //        print(gameObject.name + " Instantiate TORPEDO with target = " + target.name);
+    //        yield return new WaitForSeconds(reloadTime);
+    //    }
+    //}
+
     private void Shoot()
     {
         GameObject torpedo = Instantiate(torpPrefab, transform.position + transform.forward, transform.rotation);
         Physics.IgnoreCollision(gameObject.GetComponent<BoxCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
-        forwardDirection = transform.forward;
-        //torpedo.GetComponent<Rigidbody>().velocity = subRb.velocity + 8 * forwardDirection.normalized;
-        torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 10 * forwardDirection.normalized, ForceMode.Impulse);
+        forwardDir = transform.forward;
+        //torpedo.GetComponent<Rigidbody>().velocity = subRb.velocity + 8 * forwardDir.normalized;
+        torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 10 * forwardDir.normalized, ForceMode.Impulse);
 
-        //Debug.DrawRay(transform.position, subRb.velocity + 8 * forwardDirection.normalized, Color.blue, 2);
+        //Debug.DrawRay(transform.position, subRb.velocity + 8 * forwardDir.normalized, Color.blue, 2);
 
         //print("subRb.velocity = " + subRb.velocity);
-        //print("Torpedo Direction = " + (transform.position + subRb.velocity + 6 * forwardDirection.normalized));
-        //print("forwardDirection = " + forwardDirection.normalized);
-        //print("10xforwardDirection = " + 10 * forwardDirection.normalized);
+        //print("Torpedo Direction = " + (transform.position + subRb.velocity + 6 * forwardDir.normalized));
+        //print("forwardDir = " + forwardDir.normalized);
+        //print("10xforwardDir = " + 10 * forwardDir.normalized);
 
         torpedo.GetComponent<MoveTorpV1>().SetTarget(target);
         print(gameObject.name + " Instantiate TORPEDO with target = " + target.name);

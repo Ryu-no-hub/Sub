@@ -127,7 +127,7 @@ public class MoveTorpV1 : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        print("Collision! " + other.gameObject.name);
+        //print("Collision! " + other.gameObject.name);
         torpRb.velocity = Vector3.zero;
         moveMode = 0;
         bubbles.Stop();
@@ -135,7 +135,7 @@ public class MoveTorpV1 : MonoBehaviour
         {
             foreach (Transform child in transform)
             {
-                print("Checking child: " + child.name);
+                //print("Checking child: " + child.name);
                 if (child.transform.CompareTag("Model"))
                 {
                     Destroy(child.gameObject);
