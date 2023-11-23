@@ -22,7 +22,7 @@ public class SearchTargets : MonoBehaviour
             if (unitScript.moveMode == 0 && !unitScript.searching)
             {
                 unitScript.searching = true;
-                print(child + " Started search routine");
+                //print(child + " Started search routine");
                 StartCoroutine(SearchTarget(child));
             }
         }
@@ -32,9 +32,10 @@ public class SearchTargets : MonoBehaviour
         MoveSubV13 unitScript = unit.GetComponent<MoveSubV13>();
         int attackRange = unitScript.attackRange;
 
-        print(unit.name + " Entered search routine" + ", moveMode = " + unitScript.moveMode);
+        print(unit.name + " Started search routine" + ", moveMode = " + unitScript.moveMode);
         while (unitScript.moveMode == 0)
         {
+            if (unit == null) break;
             yield return new WaitForSeconds(0.5f);
             float minDistance = float.MaxValue;
             float distance;
@@ -43,7 +44,7 @@ public class SearchTargets : MonoBehaviour
             foreach (Transform child in transform)
             {
                 //print(unit.name + " Checking potential target: " + child);
-                if (child.transform == unit) continue;
+                if (child.transform == unit || child==null || unit==null) continue;
 
                 if (child.GetComponent<MoveSubV13>().team == unitScript.team) continue;
                 //print(unit.name + " PASSED CHECKS ");
@@ -53,10 +54,14 @@ public class SearchTargets : MonoBehaviour
                 {
                     minDistance = distance;
                     currentTarget = child.gameObject;
+                    //print(unit.name + " recieved target option on distance = " + distance);
                 }
             }
-            if (unitScript.target == null)
+            if (unitScript.target == null && currentTarget!=null)
+            {
                 unitScript.target = currentTarget;
+                print("Setting target for " + unit.name + " - " + currentTarget==null ? "null" : currentTarget.name);
+            }
         }
     }
 }

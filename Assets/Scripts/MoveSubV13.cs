@@ -44,6 +44,10 @@ public class MoveSubV13 : MonoBehaviour, ISelectable
         get { return team; }
     }
 
+    public bool Alive
+    {
+        get { return this != null; }
+    }
     public void Select()
     {
         selectionSprite.SetActive(true);
@@ -97,11 +101,8 @@ public class MoveSubV13 : MonoBehaviour, ISelectable
             new_rotation = Quaternion.LookRotation(targetDir - slowedVelocity);
             forwardDir = transform.forward;
             forwardTargetAngle = Vector3.Angle(forwardDir, targetDir);
-
             Debug.DrawRay(currentPos, forwardDir * 100, Color.green);
 
-            //target = null;
-            //print(gameObject.name + " Moving");
             if (moveMode == 1)
             {
                 Move(1);
@@ -137,53 +138,43 @@ public class MoveSubV13 : MonoBehaviour, ISelectable
 
             if (targetDistance < 2 || // погрешность достижения точки
                     ((stopTime < speed / dragDecel * myDrag)
-                    && (velocityTargetAngle < 5 || velocityTargetAngle > 175)) // направление примерно на точку, чтобы не промахиваться
+                    && (velocityTargetAngle < 5 || velocityTargetAngle > 175)) // направление примерно на точку, чтобы не промахиваться по времени остановки
                     )
             {
                 Stop();
             }
-        }
-        else if (target == null) 
-        {
-            if (angleUp > 1) // Плавное выравнивание
-            {
-                float xDegreeDelta = (transform.localEulerAngles.x - 180) * 0.2f;
-                float zDegreeDelta = (transform.localEulerAngles.z - 180) * 0.2f;
 
-                print(gameObject.name + " Aligning... Angle up = " + angleUp + ",");
-                //print("x, z = " + transform.localEulerAngles.x + " " + transform.localEulerAngles.z + ", correction Vec = " + new Vector3(xDegreeDelta, 0, zDegreeDelta) * Time.deltaTime);
-                transform.localEulerAngles += new Vector3(xDegreeDelta, 0, zDegreeDelta) * Time.deltaTime;
-                subRb.angularVelocity = Vector3.zero;
-            }
-            else if(!aligned) // Жёсткое выравнивание и остановка вращения
+            if(target!=null && targetDistance < 10 && Vector3.Distance(currentPos, target.transform.position) < attackRange)
             {
-                transform.localEulerAngles = new Vector3(0, transform.localEulerAngles.y, 0);
-                subRb.angularVelocity = Vector3.zero;
-                aligned = true;
-                print(gameObject.name + " Hard alignment");
-                searching = false;
+                Stop();
             }
         }
-        else if (target != null && team == 1 && ammo > 0) 
+        else if (target == null && !aligned) 
         {
-            if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // На дистанции выстрела
+            AlignToAngle(0, transform.localEulerAngles.y, 1, true);
+        }
+        else if (target != null && team == 1 && ammo > 0)
+        {
+            targetDir = target.transform.position - transform.position;
+            float angleTarget = Vector3.Angle(transform.forward, targetDir);
+
+            if (angleTarget > 5) // Поворот на цель
             {
+                print(transform.name + " Turning to target, angle = " + angleTarget);
+
+                //print("Vector3.Angle(transform.forward, targetDir) = " + Vector3.Angle(transform.forward, targetDir));
+                //forwardDir = transform.forward;
                 currentPos = transform.position;
                 targetDir = target.transform.position - currentPos;
-                float angleTarget = Vector3.Angle(transform.forward, targetDir);
-                if (angleTarget > 5) // Поворот на цель
-                {
-                    print(transform.name + " Turning to target, angle = " + angleTarget);
-                    //print("Vector3.Angle(transform.forward, targetDir) = " + Vector3.Angle(transform.forward, targetDir));
-                    new_rotation = Quaternion.LookRotation(targetDir - slowedVelocity);
-                    forwardDir = transform.forward;
-                    transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, steadyRotationCoeff * Mathf.Sqrt(rotationSpeedCoeff) * Time.deltaTime);
-                    Debug.DrawRay(currentPos, (targetDir - slowedVelocity) * 100, Color.grey);
-                    //angleTarget = Vector3.Angle(transform.forward, targetDir);
-                    //print(transform.name + " Updated angle = " + angleTarget);
-                }
-                //if ((lastShotTime == 0 || timer - lastShotTime > reloadTime) && angleTarget < 0.5) // Не идёт перезарядка + доворота хватило
-                else if (lastShotTime == 0 || timer - lastShotTime > reloadTime) // Не идёт перезарядка + доворота хватило
+                new_rotation = Quaternion.LookRotation(targetDir - slowedVelocity);
+                float targetAngleX = new_rotation.eulerAngles.x;
+                float targetAngleY = new_rotation.eulerAngles.y;
+
+                AlignToAngle(targetAngleX, targetAngleY, 1, false);
+            }
+            else if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // На дистанции выстрела
+            {
+                if (timer - lastShotTime > reloadTime || lastShotTime == 0) // Не идёт перезарядка
                 {
                     ammo--;
                     searching = false;
@@ -193,12 +184,11 @@ public class MoveSubV13 : MonoBehaviour, ISelectable
                 }
                 //else if(team==1) print("timer - lastShotTime = " + (timer - lastShotTime));
             }
-            //else if(moveDestination != oldmoveDestination) // Подплыть на расстояние выстрела
-            //{
-            //    moveDestination = transform.position + attackRange * targetDir.normalized;
-            //    print("transform.position = " + transform.position);
-            //    print("moveDestination = " + moveDestination);
-            //}
+            else // Цель уплыла - подплыть на расстояние выстрела
+            {
+                //targetDir = target.transform.position - transform.position;
+                moveDestination = target.transform.position - (attackRange - 2) * targetDir.normalized;
+            }
         }
 
         // Проверка на новую точку назначения
@@ -267,13 +257,65 @@ public class MoveSubV13 : MonoBehaviour, ISelectable
             bubblesRight.Play();
         }
     }
+    private void AlignToAngle(float targetAngleX, float targetAngleY, int threshold, bool hardAlignment)
+    {
+        //float turnSpeed = 30;
+        float turnSpeed = 1.5f;
+        float currentAngleX = transform.localEulerAngles.x, currentAngleY = transform.localEulerAngles.y, currentAngleZ = transform.localEulerAngles.z;
+        if (targetAngleX > 180)
+            targetAngleX = targetAngleX - 360; // 350 --> 10,  10 --> 10
+        if (targetAngleY > 180)
+            targetAngleY = targetAngleY - 360;
+
+        if (currentAngleX > 180)
+            currentAngleX = currentAngleX - 360; // 5 --> 5, 355 --> -5
+        if (currentAngleY > 180)
+            currentAngleY = currentAngleY - 360;
+        if (currentAngleZ > 180)
+            currentAngleZ = currentAngleZ - 360;
+
+        float angleDiffX = targetAngleX - currentAngleX;
+        float angleDiffY = targetAngleY - currentAngleY;
+        if (Mathf.Abs(angleDiffX) > threshold || Mathf.Abs(angleDiffY) > threshold) // Плавное выравнивание
+        {
+            print(gameObject.name + " Aligning, angles = " + transform.localEulerAngles);
+            print(gameObject.name + " targetAngleX = " + targetAngleX + ", targetAngleY = " + targetAngleY);
+
+            //float xDegreeDelta = Mathf.Sign(angleDiffX) * turnSpeed;
+            //float yDegreeDelta = Mathf.Sign(angleDiffY) * turnSpeed;
+            //float zDegreeDelta = Mathf.Sign(-currentAngleZ) * turnSpeed;
+
+            float xDegreeDelta = angleDiffX * turnSpeed;
+            float yDegreeDelta = angleDiffY * turnSpeed;
+            float zDegreeDelta = -currentAngleZ * turnSpeed;
+            
+            print("Delta angles = " + new Vector3(xDegreeDelta, yDegreeDelta, zDegreeDelta));
+            transform.localEulerAngles += new Vector3(xDegreeDelta, yDegreeDelta, zDegreeDelta) * Time.deltaTime;
+        }
+        else if(hardAlignment)// Жёсткое выравнивание и остановка вращения
+        {
+            print(gameObject.name + " Hard alignment");
+
+            transform.localEulerAngles = new Vector3(0, transform.localEulerAngles.y, 0);
+            aligned = true;
+            subRb.angularVelocity = Vector3.zero;
+        }
+        else
+        {
+            print(gameObject.name + " Alignment threshold reached, angleDiffX = " + angleDiffX + ", angleDiffY = " + angleDiffY);
+
+            aligned = true;
+            subRb.angularVelocity = Vector3.zero;
+        }
+    }
 
     public void Stop()
     {
+        print("ENGINES STOP, target = " + target);
+        
         moveMode = 0;
-        print("ENGINES STOP");
-        print("target = " + target);
         moveDestination = Vector3.zero;
+        searching = false;
         bubblesLeft.Stop();
         bubblesRight.Stop();
     }

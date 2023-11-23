@@ -9955,9 +9955,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9519e157ec82de04bacccc38d5f31d4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  torpPrefab: {fileID: 4674429556456541482, guid: 1bbace2b3bcd04b42bb5e6cdb3f543b6, type: 3}
+  torpPrefab: {fileID: 1762098680020554552, guid: de985c31c978fca438200a3e0f2206f6, type: 3}
   target: {fileID: 0}
-  searching: 0
-  targetPosition: {x: 0, y: 0, z: 0}
+  moveDestination: {x: 0, y: 0, z: 0}
   moveMode: 0
+  searching: 0
+  attackRange: 40
   team: 1

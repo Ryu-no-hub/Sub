@@ -320,6 +320,10 @@ public class RTSSelection : MonoBehaviour
     {
         for (int i = 0; i < toBeSelected.Count; ++i)
         {
+            //if (toBeSelected[i] != null)
+            //print(toBeSelected[i]);
+            if (!toBeSelected[i].Alive)
+                continue;
             toBeSelected[i].Deselect();
 
             string unitName = toBeSelected[i].gameObject.name;

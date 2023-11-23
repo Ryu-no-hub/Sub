@@ -54,6 +54,11 @@ public class PlayerInput : MonoBehaviour
             SpawnSub();
         }
         if (Input.GetKeyUp(KeyCode.Q)) isQDown = false;
+
+        if (Input.GetKeyDown(KeyCode.Delete))
+            foreach (Transform child in transform)
+                if (child.gameObject.transform.Find("Selection Sprite").gameObject.activeSelf)
+                    Destroy(child.gameObject);
     }
 
     private void SpawnSub()
@@ -68,6 +73,7 @@ public class PlayerInput : MonoBehaviour
             newSub.name = subPrefab.name + " " + N++;
         }
     }
+        
     private void MoveOrder(RaycastHit raycastHit)
     {
         int totalUnits = selectedUnits.Count;
@@ -138,12 +144,12 @@ public class PlayerInput : MonoBehaviour
             print(target.name + " set as target for " + child.name);
             print(child.GetComponent<MoveSubV13>().target.name);
 
-            int unitRange = child.GetComponent<MoveSubV13>().attackRange;
+            int unitAttackRange = child.GetComponent<MoveSubV13>().attackRange;
 
-            if (Vector3.Distance(child.transform.position, target.transform.position) > unitRange)
+            if (Vector3.Distance(child.transform.position, target.transform.position) > unitAttackRange)
             {
                 Vector3 targetDir = target.transform.position - child.transform.position;
-                child.GetComponent<MoveSubV13>().moveDestination = target.transform.position - (unitRange - 2) * targetDir.normalized ;
+                child.GetComponent<MoveSubV13>().moveDestination = target.transform.position - (unitAttackRange - 2) * targetDir.normalized ;
             }
             else
             {
