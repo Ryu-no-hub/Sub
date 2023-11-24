@@ -64,11 +64,11 @@ public class MoveTorpV1 : MonoBehaviour
             //print("targetPosition = " + targetPosition);
 
             Debug.DrawRay(currentPos, forwardDirection * 10, Color.green);
-            Move(1);
+            Move();
         }
         else {print(gameObject.name + " No target!");}
     }
-    void Move(int mode = 1)
+    void Move()
     {
         // ѕоворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
         transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, Mathf.Sqrt(speed * rotationSpeedCoeff) * Time.deltaTime);

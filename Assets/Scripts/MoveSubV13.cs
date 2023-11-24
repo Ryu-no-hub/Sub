@@ -287,7 +287,7 @@ public class MoveSubV13 : MonoBehaviour, ISelectable
 
             float xDegreeDelta = angleDiffX * turnSpeed;
             float yDegreeDelta = angleDiffY * turnSpeed;
-            float zDegreeDelta = -currentAngleZ * turnSpeed;
+            float zDegreeDelta = -currentAngleZ * turnSpeed / 2;
             
             print("Delta angles = " + new Vector3(xDegreeDelta, yDegreeDelta, zDegreeDelta));
             transform.localEulerAngles += new Vector3(xDegreeDelta, yDegreeDelta, zDegreeDelta) * Time.deltaTime;
@@ -300,7 +300,7 @@ public class MoveSubV13 : MonoBehaviour, ISelectable
             aligned = true;
             subRb.angularVelocity = Vector3.zero;
         }
-        else
+        else // Достаточно близко
         {
             print(gameObject.name + " Alignment threshold reached, angleDiffX = " + angleDiffX + ", angleDiffY = " + angleDiffY);
 
@@ -315,6 +315,7 @@ public class MoveSubV13 : MonoBehaviour, ISelectable
         
         moveMode = 0;
         moveDestination = Vector3.zero;
+        subRb.angularVelocity = Vector3.zero;
         searching = false;
         bubblesLeft.Stop();
         bubblesRight.Stop();
