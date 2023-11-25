@@ -9959,6 +9959,7 @@ MonoBehaviour:
   target: {fileID: 0}
   moveDestination: {x: 0, y: 0, z: 0}
   moveMode: 0
+  stopped: 1
   searching: 0
   attackRange: 40
   team: 1

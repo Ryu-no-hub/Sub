@@ -27,5 +27,9 @@ public class RTSCamera : MonoBehaviour
             transform.Rotate(0, xRotation * rotateSensitivity * Time.deltaTime, 0, Space.World);
             //transform.Rotate(0, 0, -yRotation * rotateSensitivity * Time.deltaTime, Space.Self);
         }
+
+        Vector3 pos = transform.position;
+        pos.y -= Input.mouseScrollDelta.y;
+        transform.position = pos; 
     }
 }
