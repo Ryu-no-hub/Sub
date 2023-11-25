@@ -18,25 +18,23 @@ public class SearchTargets : MonoBehaviour
         foreach (Transform child in transform)
         {
             //print("child = " + child.name);
-            MoveSubV13 unitScript = child.GetComponent<MoveSubV13>();
-            if (unitScript.moveMode == 0 && !unitScript.searching)
+            MoveSubStandart unitScript = child.GetComponent<MoveSubStandart>();
+            if (unitScript.moveMode == 0 && unitScript.stopped && !unitScript.searching)
             {
-                unitScript.searching = true;
-                //print(child + " Started search routine");
                 StartCoroutine(SearchTarget(child));
+                unitScript.searching = true;
             }
         }
     }
     private IEnumerator SearchTarget(Transform unit)
     {
-        MoveSubV13 unitScript = unit.GetComponent<MoveSubV13>();
+        MoveSubStandart unitScript = unit.GetComponent<MoveSubStandart>();
         int attackRange = unitScript.attackRange;
 
         print(unit.name + " Started search routine" + ", moveMode = " + unitScript.moveMode);
         while (unitScript.moveMode == 0)
         {
             if (unit == null) break;
-            yield return new WaitForSeconds(0.5f);
             float minDistance = float.MaxValue;
             float distance;
             GameObject currentTarget = null;
@@ -46,7 +44,7 @@ public class SearchTargets : MonoBehaviour
                 //print(unit.name + " Checking potential target: " + child);
                 if (child.transform == unit || child==null || unit==null) continue;
 
-                if (child.GetComponent<MoveSubV13>().team == unitScript.team) continue;
+                if (child.GetComponent<MoveSubStandart>().team == unitScript.team) continue;
                 //print(unit.name + " PASSED CHECKS ");
 
                 distance = Vector3.Distance(unit.position, child.position);
@@ -62,6 +60,7 @@ public class SearchTargets : MonoBehaviour
                 unitScript.target = currentTarget;
                 print("Setting target for " + unit.name + " - " + currentTarget==null ? "null" : currentTarget.name);
             }
+            yield return new WaitForSeconds(0.5f);
         }
     }
 }

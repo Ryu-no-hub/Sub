@@ -1,20 +1,22 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class PlayerInput : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
     [SerializeField] private LayerMask layerMask;
     private List<GameObject> selectedUnits = new List<GameObject>();
+
     //private List<MoveSubV6> moveSubScript;
-    //private Transform orderTransform;
+
     public GameObject subPrefab;
-    bool isQDown = false;
+    //bool isQDown = false;
     int N = 0;
 
-    //private float myTerrainHeight;
-    // Start is called before the first frame update
+    public RTSSelection selection;
+
     void Start()
     {
         //print("???"+subPrefab);
@@ -25,8 +27,38 @@ public class PlayerInput : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Mouse1))
+        // Mouse
+        if (Input.GetMouseButtonDown(0))
         {
+            // Don't begin selecting if clicking on UI
+            // TODO: Exclude World space UI from this check
+            if (IsPointerOverUIElement())
+                return;
+
+            // Different modes (Default, additive, subtractive)
+            RTSSelection.SelectionModifier mode = RTSSelection.SelectionModifier.Default;
+
+            if (Input.GetKey(KeyCode.LeftShift))
+                mode = RTSSelection.SelectionModifier.Additive;
+            else
+            if (Input.GetKey(KeyCode.LeftControl))
+                mode = RTSSelection.SelectionModifier.Subtractive;
+
+            selection.BeginSelection(mode);
+        }
+
+        // All selection confirms on mouse up
+        if (Input.GetMouseButtonUp(0) && selection.selecting)
+        {
+            selection.ConfirmSelection();
+        }
+
+        // Move order
+        if (Input.GetMouseButtonDown(1))
+        {
+            if (IsPointerOverUIElement())
+                return;
+
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit raycastHit, float.MaxValue, layerMask))
             {
@@ -49,11 +81,12 @@ public class PlayerInput : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Q) & !isQDown)
+        //if (Input.GetKeyDown(KeyCode.Q) & !isQDown)
+        if (Input.GetKeyDown(KeyCode.Q))
         {
             SpawnSub();
         }
-        if (Input.GetKeyUp(KeyCode.Q)) isQDown = false;
+        //if (Input.GetKeyUp(KeyCode.Q)) isQDown = false;
 
         if (Input.GetKeyDown(KeyCode.Delete))
             foreach (Transform child in transform)
@@ -61,9 +94,28 @@ public class PlayerInput : MonoBehaviour
                     Destroy(child.gameObject);
     }
 
+
+    private bool IsPointerOverUIElement()
+    {
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = Input.mousePosition;
+        List<RaycastResult> raycastResults = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, raycastResults);
+
+        for (int index = 0; index < raycastResults.Count; index++)
+        {
+            RaycastResult curRaysastResult = raycastResults[index];
+            Debug.Log(curRaysastResult.gameObject.layer + ", " + curRaysastResult.gameObject.name);
+            //Debug.DrawLine(transform.position, curRaysastResult.worldPosition * 10, Color.red);
+            if (curRaysastResult.gameObject.layer == LayerMask.NameToLayer("UI"))
+                return true;
+        }
+        return false;
+    }
+
     private void SpawnSub()
     {
-        isQDown = true;
+        //isQDown = true;
         Ray ray_spawn = mainCamera.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray_spawn, out RaycastHit rayCastHit_spawn, float.MaxValue))
         {
@@ -126,8 +178,10 @@ public class PlayerInput : MonoBehaviour
                     minDistanceIndex = i;
                 }
             }
-            unit.GetComponent<MoveSubV13>().moveDestination = targetPointsInLine[minDistanceIndex];
-            unit.GetComponent<MoveSubV13>().target = null;
+            unit.GetComponent<MoveSubStandart>().moveDestination = targetPointsInLine[minDistanceIndex];
+            unit.GetComponent<MoveSubStandart>().target = null;
+            unit.GetComponent<MoveSubStandart>().stopped = false;
+            unit.GetComponent<MoveSubStandart>().moveMode = 1;
 
             print("Target position = " + targetPointsInLine[minDistanceIndex] + " for " + unit.name);
             //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().moveDestinationition + " for " + unit.name);
@@ -140,20 +194,20 @@ public class PlayerInput : MonoBehaviour
         foreach(GameObject child in selectedUnits)
         {
             if (child == target) continue;
-            child.GetComponent<MoveSubV13>().target = target;
+            child.GetComponent<MoveSubStandart>().target = target;
             print(target.name + " set as target for " + child.name);
-            print(child.GetComponent<MoveSubV13>().target.name);
+            print(child.GetComponent<MoveSubStandart>().target.name);
 
-            int unitAttackRange = child.GetComponent<MoveSubV13>().attackRange;
+            int unitAttackRange = child.GetComponent<MoveSubStandart>().attackRange;
 
             if (Vector3.Distance(child.transform.position, target.transform.position) > unitAttackRange)
             {
                 Vector3 targetDir = target.transform.position - child.transform.position;
-                child.GetComponent<MoveSubV13>().moveDestination = target.transform.position - (unitAttackRange - 2) * targetDir.normalized ;
+                child.GetComponent<MoveSubStandart>().moveDestination = target.transform.position - (unitAttackRange - 2) * targetDir.normalized ;
             }
             else
             {
-                child.GetComponent<MoveSubV13>().Stop();
+                child.GetComponent<MoveSubStandart>().Stop();
             }
         }
     }
