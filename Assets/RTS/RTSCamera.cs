@@ -24,11 +24,10 @@ public class RTSCamera : MonoBehaviour
 
     [Header("Movement Limits")]
     [Space]
-    public bool enableMovementLimits;
     public Vector2 heightLimit;
     public Vector2 lenghtLimit;
     public Vector2 widthLimit;
-    public Vector2 zoomRotationLimit;
+    public int zoomRotationLimit = -340;
 
     private float panSpeed;
     private Vector3 initialPos;
@@ -115,10 +114,6 @@ public class RTSCamera : MonoBehaviour
         pos.y -= Input.mouseScrollDelta.y * zoomSpeed;
         transform.position = pos;
 
-        //Zoom rotation
-        float angleDiffX = 3 * Input.mouseScrollDelta.y;
-        Vector3 angleDiff = new Vector3(angleDiffX, 0,0);
-        transform.localEulerAngles -= angleDiff;
 
         #endregion
 
@@ -162,19 +157,22 @@ public class RTSCamera : MonoBehaviour
 
         #region boundaries
 
-        if (enableMovementLimits == true)
-        {
-            //movement limits
-            pos = transform.position;
-            pos.y = Mathf.Clamp(pos.y, heightLimit.x, heightLimit.y);
-            pos.z = Mathf.Clamp(pos.z, lenghtLimit.x, lenghtLimit.y);
-            pos.x = Mathf.Clamp(pos.x, widthLimit.x, widthLimit.y);
-            transform.position = pos;
+        //movement limits
+        pos = transform.position;
+        pos.y = Mathf.Clamp(pos.y, heightLimit.x, heightLimit.y);
+        pos.z = Mathf.Clamp(pos.z, lenghtLimit.x, lenghtLimit.y);
+        pos.x = Mathf.Clamp(pos.x, widthLimit.x, widthLimit.y);
+        transform.position = pos;
 
-            //angleDiffX = Mathf.Clamp(transform.localEulerAngles.x + angleDiffX, zoomRotationLimit.x, zoomRotationLimit.y);
+        //Zoom rotation
+        float newAngleX = zoomRotationLimit + 2.390458f * Mathf.Sqrt(pos.y - heightLimit.x);
 
-            //transform.localEulerAngles.x = Mathf.Clamp(transform.localEulerAngles.x, zoomRotationLimit.x, zoomRotationLimit.y);
-        }
+        //angleDiffX = Mathf.Clamp(transform.localEulerAngles.x + angleDiffX, zoomRotationLimit.x, zoomRotationLimit.y);
+        //angleDiffX = Mathf.Clamp(transform.localEulerAngles.x + angleDiffX, zoomRotationLimit.x, zoomRotationLimit.y);
+
+        Vector3 newAngles = new Vector3(newAngleX, transform.localEulerAngles.y, transform.localEulerAngles.z);
+        transform.localEulerAngles = newAngles;
+
 
         #endregion
     }

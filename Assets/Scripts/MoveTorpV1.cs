@@ -27,12 +27,30 @@ public class MoveTorpV1 : MonoBehaviour
     private ParticleSystem bubbles;
     public GameObject target = null;
 
+    //public ParticleSystem explotionParticle;
+    //public GameObject explotionGO;
+    private ParticleSystem[] explotionGrp;
+    private ParticleSystem explotion1;
+    private ParticleSystem explotion2;
+    private ParticleSystem explotion3;
+    private AudioSource torpedoAudio;
+    public AudioClip torpedoExplosion;
+
     // Start is called before the first frame update
     void Start()
     {
         torpRb = GetComponent<Rigidbody>();
         //torpRb = transform.Find("model").GetComponent<Rigidbody>();
         bubbles = transform.Find("Bubbles").GetComponent<ParticleSystem>();
+        //explotionGrp[0] = transform.Find("SpherePop").GetComponent<ParticleSystem>();
+        //explotionGrp[1] = transform.Find("Squares Big").GetComponent<ParticleSystem>();
+        //explotionGrp[2] = transform.Find("Squares Small").GetComponent<ParticleSystem>();
+
+        torpedoAudio = GetComponent<AudioSource>();
+
+        explotion1 = transform.Find("SpherePop").GetComponent<ParticleSystem>();
+        explotion2 = transform.Find("Squares Big").GetComponent<ParticleSystem>();
+        explotion3 = transform.Find("Squares Small").GetComponent<ParticleSystem>();
     }
 
     // Update is called once per frame
@@ -138,8 +156,14 @@ public class MoveTorpV1 : MonoBehaviour
                 //print("Checking child: " + child.name);
                 if (child.transform.CompareTag("Model"))
                 {
-                    Destroy(child.gameObject);
                     destroyed = true;
+                    // for (int i = 0; i <= 2; i++) { explotionGrp[i].Play(); } 
+                    explotion1.Play();
+                    explotion2.Play();
+                    explotion3.Play();
+                    torpedoAudio.PlayOneShot(torpedoExplosion, 0.5f);
+                    Destroy(child.gameObject);
+
                     print("Destroyed: " + child.name);
                     break;
                 }
