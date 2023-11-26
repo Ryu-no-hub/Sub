@@ -13,7 +13,7 @@ public class MoveSubV13 : MonoBehaviour, ISelectable
     private float speed;
     private float myDrag = 0.8f;
     private float ThrustDistCoeff = 0.1f, ThrustDirectionCoeff;
-    private int rotationSpeedCoeff = 1500, steadyRotationCoeff = 2;
+    private int rotationSpeedCoeff = 1500; //, steadyRotationCoeff = 2;
 
     private float angleUp;
 

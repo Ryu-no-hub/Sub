@@ -11,7 +11,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     // Movement parameters
     private float force = 4f;
     private float speed;
-    private float myDrag = 0.8f;
+    private float myDrag = 0.6f;
     private float ThrustDistCoeff = 0.1f, ThrustDirectionCoeff;
     private int rotationSpeedCoeff = 1500, steadyRotationCoeff = 20;
 
@@ -30,13 +30,14 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     private float dragDecel;
     private bool aligned = true;
     private float timer;
+    private AudioSource submarineSource;
 
     public GameObject torpPrefab, target = null;
     public Vector3 moveDestination;
     public int moveMode;
     public bool stopped = true, searching = false;
     public int attackRange = 40;
-
+    public AudioClip launchTorpedoSound;
 
     public int team = 1;
     public int Team
@@ -72,6 +73,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         forwardTargetAngle = Vector3.Angle(forwardDir, targetDir);
         targetDistance = targetDir.magnitude;
         selectionSprite = transform.Find("Selection Sprite").gameObject;
+        submarineSource = GetComponent<AudioSource>();
         moveMode = 0;
     }
 
@@ -83,6 +85,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         slowedVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
         subRb.velocity = slowedVelocity;
 
+
         // Отслеживание угла с вертикалью, чтобы сохранять гАризонтальную ориентацию вне активного движения
         angleUp = Vector3.Angle(Vector3.up, transform.up);
 
@@ -92,6 +95,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         speed = Vector3.Magnitude(subRb.velocity);
         timer += Time.deltaTime;
 
+        print(transform.name + " speed = " + speed);
         //print("Timer = " + timer);
         //print("counter = " + counter);
         //print("Time.frameCount = " + Time.frameCount);
@@ -174,13 +178,14 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             }
             else if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // На дистанции выстрела
             {
-                if (timer - lastShotTime > reloadTime || lastShotTime == 0) // Не идёт перезарядка
+                if (timer - lastShotTime > reloadTime - 0.1f || lastShotTime == 0) // Не идёт перезарядка
                 {
                     ammo--;
                     //stopped = false;
                     lastShotTime = timer;
                     print("SHOOT! Time = " + timer);
-                    Shoot();
+                    submarineSource.PlayOneShot(launchTorpedoSound, 0.1f);
+                    Invoke("Shoot", 0.1f);
                 }
                 //else if(team==1) print("timer - lastShotTime = " + (timer - lastShotTime));
             }
@@ -200,7 +205,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             targetDir = moveDestination - currentPos;
             forwardTargetAngle = Vector3.Angle(forwardDir, targetDir);
             targetDistance = targetDir.magnitude;
-            if (forwardTargetAngle <= 45 || targetDistance > 20 || target != null)
+            if (forwardTargetAngle <= 45 || targetDistance > 20)// || target != null)
             {
                 moveMode = 1;
             }
@@ -333,6 +338,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
 
     private void Shoot()
     {
+
         GameObject torpedo = Instantiate(torpPrefab, transform.position + transform.forward, transform.rotation);
         Physics.IgnoreCollision(gameObject.GetComponent<BoxCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
         forwardDir = transform.forward;
@@ -346,6 +352,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         //print("10xforwardDir = " + 10 * forwardDir.normalized);
 
         torpedo.GetComponent<MoveTorpV1>().SetTarget(target);
+
         print(gameObject.name + " Instantiate TORPEDO with target = " + target.name);
     }
 }

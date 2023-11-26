@@ -9,10 +9,9 @@ public class PlayerInput : MonoBehaviour
     [SerializeField] private LayerMask layerMask;
     private List<GameObject> selectedUnits = new List<GameObject>();
 
-    //private List<MoveSubV6> moveSubScript;
+    private List<MoveSubStandart> subScript = new List<MoveSubStandart>();
 
     public GameObject subPrefab;
-    //bool isQDown = false;
     int N = 0;
 
     public RTSSelection selection;
@@ -27,7 +26,7 @@ public class PlayerInput : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // Mouse
+        // Selection
         if (Input.GetMouseButtonDown(0))
         {
             // Don't begin selecting if clicking on UI
@@ -53,7 +52,8 @@ public class PlayerInput : MonoBehaviour
             selection.ConfirmSelection();
         }
 
-        // Move order
+
+        // Move - Form a line
         if (Input.GetMouseButtonDown(1))
         {
             if (IsPointerOverUIElement())
@@ -70,9 +70,9 @@ public class PlayerInput : MonoBehaviour
                         selectedUnits.Add(child.gameObject);
                 }
 
-                if (raycastHit.collider.gameObject.layer == 3)
+                if (raycastHit.collider.gameObject.layer == 3) // Ground
                     MoveOrder(raycastHit);
-                else
+                else // Not Ground, therefore - Unit
                 {
                     GameObject target = raycastHit.collider.gameObject;
                     AttackSingleOrder(target);
@@ -81,17 +81,20 @@ public class PlayerInput : MonoBehaviour
             }
         }
 
-        //if (Input.GetKeyDown(KeyCode.Q) & !isQDown)
         if (Input.GetKeyDown(KeyCode.Q))
         {
             SpawnSub();
         }
-        //if (Input.GetKeyUp(KeyCode.Q)) isQDown = false;
 
         if (Input.GetKeyDown(KeyCode.Delete))
             foreach (Transform child in transform)
                 if (child.gameObject.transform.Find("Selection Sprite").gameObject.activeSelf)
                     Destroy(child.gameObject);
+
+        if (Input.GetKeyDown(KeyCode.S))
+        {
+            StopSub();
+        }
     }
 
 
@@ -106,7 +109,6 @@ public class PlayerInput : MonoBehaviour
         {
             RaycastResult curRaysastResult = raycastResults[index];
             Debug.Log(curRaysastResult.gameObject.layer + ", " + curRaysastResult.gameObject.name);
-            //Debug.DrawLine(transform.position, curRaysastResult.worldPosition * 10, Color.red);
             if (curRaysastResult.gameObject.layer == LayerMask.NameToLayer("UI"))
                 return true;
         }
@@ -115,7 +117,6 @@ public class PlayerInput : MonoBehaviour
 
     private void SpawnSub()
     {
-        //isQDown = true;
         Ray ray_spawn = mainCamera.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray_spawn, out RaycastHit rayCastHit_spawn, float.MaxValue))
         {
@@ -129,7 +130,7 @@ public class PlayerInput : MonoBehaviour
     private void MoveOrder(RaycastHit raycastHit)
     {
         int totalUnits = selectedUnits.Count;
-        float unitSpacing = 8; // Adjust this value to control the spacing between units
+        float unitSpacing = 7; // Adjust this value to control the spacing between units
 
         // Calculate the total length of the line
         float lineLength = (totalUnits - 1) * unitSpacing;
@@ -210,5 +211,17 @@ public class PlayerInput : MonoBehaviour
                 child.GetComponent<MoveSubStandart>().Stop();
             }
         }
+    }
+
+    private void StopSub()
+    {
+        selectedUnits.Clear();
+        foreach (Transform child in transform)
+        {
+            if (child.transform.Find("Selection Sprite").gameObject.activeSelf)
+                child.GetComponent<MoveSubStandart>().Stop();
+        }
+
+
     }
 }
