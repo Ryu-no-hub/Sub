@@ -161,7 +161,7 @@ public class MoveTorpV1 : MonoBehaviour
                     explotion1.Play();
                     explotion2.Play();
                     explotion3.Play();
-                    torpedoAudio.PlayOneShot(torpedoExplosion, 0.5f);
+                    torpedoAudio.PlayOneShot(torpedoExplosion, 0.1f);
                     Destroy(child.gameObject);
 
                     print("Destroyed: " + child.name);

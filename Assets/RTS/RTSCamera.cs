@@ -9,10 +9,6 @@ using UnityEngine.EventSystems;
 /// </summary>
 public class RTSCamera : MonoBehaviour
 {
-    public float moveSpeed = 10f;
-    public float rotateSensitivity = 200f;
-
-
     public float ScreenEdgeBorderThickness = 5.0f; // distance from screen edge. Used for mouse movement
 
     [Header("Movement Speeds")]
@@ -20,20 +16,22 @@ public class RTSCamera : MonoBehaviour
     public float minPanSpeed;
     public float maxPanSpeed;
     public float secToMaxSpeed; //seconds taken to reach max speed;
-    public float zoomSpeed;
 
     [Header("Movement Limits")]
     [Space]
     public Vector2 heightLimit;
     public Vector2 lenghtLimit;
     public Vector2 widthLimit;
-    public int zoomRotationLimit = -340;
 
+    private float mouseX;
+    private float mouseY;
+    private float ScreenHeight;
+    private float ScreenWidth;
+
+    private float zoomSpeed = 10;
+    private int zoomRotationLimit = -340;
     private float panSpeed;
-    private Vector3 initialPos;
     private Vector3 panMovement;
-    private Vector3 pos;
-    private Quaternion rot;
     private bool rotationActive = false;
     private Vector3 lastMousePosition;
     private Quaternion initialRot;
@@ -45,57 +43,45 @@ public class RTSCamera : MonoBehaviour
 
     void Start()
     {
-        initialPos = transform.position;
         initialRot = transform.rotation;
     }
 
     private void Update()
     {
-        //// Movement
-        //Vector2 movement = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
-        //Vector3 dir = Quaternion.Euler(0, transform.localEulerAngles.y, 0) * new Vector3(movement.x, 0, movement.y);
-        //transform.Translate(dir * moveSpeed * Time.deltaTime, Space.World);
-
-        //// Rotation
-        //if (Input.GetMouseButton(1))
-        //{
-        //    float xRotation = Input.GetAxis("Mouse X");
-        //    //float yRotation = Input.GetAxis("Mouse Y");
-
-        //    // Rotate around y axis
-        //    transform.Rotate(0, xRotation * rotateSensitivity * Time.deltaTime, 0, Space.World);
-        //    //transform.Rotate(0, 0, -yRotation * rotateSensitivity * Time.deltaTime, Space.Self);
-        //}
+        mouseX = Input.mousePosition.x;
+        mouseY = Input.mousePosition.y;
+        ScreenHeight = Screen.height;
+        ScreenWidth = Screen.width;
 
         panMovement = Vector3.zero;
 
         if (!rotationActive)
         {
-            if (Input.mousePosition.y >= Screen.height - ScreenEdgeBorderThickness)
+            if (mouseY >= ScreenHeight - ScreenEdgeBorderThickness)
             {
-                panMovement += Vector3.left * panSpeed * Time.deltaTime;
+                panMovement += panSpeed * Time.deltaTime * Vector3.left;
             }
-            if (Input.mousePosition.y <= ScreenEdgeBorderThickness)
+            if (mouseY <= ScreenEdgeBorderThickness)
             {
-                panMovement += Vector3.right * panSpeed * Time.deltaTime;
+                panMovement += panSpeed * Time.deltaTime * Vector3.right;
             }
-            if (Input.mousePosition.x <= ScreenEdgeBorderThickness)
+            if (mouseX <= ScreenEdgeBorderThickness)
             {
-                panMovement -= Vector3.forward * panSpeed * Time.deltaTime;
+                panMovement -= panSpeed * Time.deltaTime * Vector3.forward;
             }
-            if (Input.mousePosition.x >= Screen.width - ScreenEdgeBorderThickness)
+            if (mouseX >= ScreenWidth - ScreenEdgeBorderThickness)
             {
-                panMovement += Vector3.forward * panSpeed * Time.deltaTime;
+                panMovement += panSpeed * Time.deltaTime * Vector3.forward;
             }
 
             transform.Translate(panMovement, Space.World);
 
 
             //increase pan speed
-            if (Input.mousePosition.y >= Screen.height - ScreenEdgeBorderThickness
-                || Input.mousePosition.y <= ScreenEdgeBorderThickness
-                || Input.mousePosition.x <= ScreenEdgeBorderThickness
-                || Input.mousePosition.x >= Screen.width - ScreenEdgeBorderThickness
+            if (   mouseY >= ScreenHeight - ScreenEdgeBorderThickness
+                || mouseY <= ScreenEdgeBorderThickness
+                || mouseX <= ScreenEdgeBorderThickness
+                || mouseX >= ScreenWidth - ScreenEdgeBorderThickness
                 )
             {
                 panIncrease += Time.deltaTime / secToMaxSpeed;
@@ -126,8 +112,8 @@ public class RTSCamera : MonoBehaviour
             Vector3 mouseDelta;
             if (lastMousePosition.x >= 0 &&
                 lastMousePosition.y >= 0 &&
-                lastMousePosition.x <= Screen.width &&
-                lastMousePosition.y <= Screen.height)
+                lastMousePosition.x <= ScreenWidth &&
+                lastMousePosition.y <= ScreenHeight)
                 mouseDelta = Input.mousePosition - lastMousePosition;
             else
             {
@@ -144,36 +130,25 @@ public class RTSCamera : MonoBehaviour
             transform.rotation = Quaternion.Euler(rotation);
         }
 
-        if (Input.GetMouseButtonUp(0))
+        if (Input.GetKeyUp(KeyCode.Space))
         {
             rotationActive = false;
-            transform.rotation = Quaternion.Slerp(transform.rotation, initialRot, 0.5f * Time.time);
+            transform.rotation = Quaternion.Slerp(transform.rotation, initialRot, 1);
         }
 
         lastMousePosition = Input.mousePosition;
 
         #endregion
 
-
-        #region boundaries
-
-        //movement limits
+        // Movement limits
         pos = transform.position;
         pos.y = Mathf.Clamp(pos.y, heightLimit.x, heightLimit.y);
         pos.z = Mathf.Clamp(pos.z, lenghtLimit.x, lenghtLimit.y);
         pos.x = Mathf.Clamp(pos.x, widthLimit.x, widthLimit.y);
         transform.position = pos;
 
-        //Zoom rotation
+        // Zooming rotation
         float newAngleX = zoomRotationLimit + 2.390458f * Mathf.Sqrt(pos.y - heightLimit.x);
-
-        //angleDiffX = Mathf.Clamp(transform.localEulerAngles.x + angleDiffX, zoomRotationLimit.x, zoomRotationLimit.y);
-        //angleDiffX = Mathf.Clamp(transform.localEulerAngles.x + angleDiffX, zoomRotationLimit.x, zoomRotationLimit.y);
-
-        Vector3 newAngles = new Vector3(newAngleX, transform.localEulerAngles.y, transform.localEulerAngles.z);
-        transform.localEulerAngles = newAngles;
-
-
-        #endregion
+        transform.localEulerAngles = new Vector3(newAngleX, transform.localEulerAngles.y, transform.localEulerAngles.z);
     }
 }

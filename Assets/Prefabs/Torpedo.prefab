@@ -19717,7 +19717,7 @@ MonoBehaviour:
   moveMode: 0
   targetPosition: {x: 0, y: 0, z: 0}
   target: {fileID: 0}
-  torpedoExplosion: {fileID: 8300000, guid: 88ad623135753e9468bcd7f7e6c1a9f9, type: 3}
+  torpedoExplosion: {fileID: 8300000, guid: 7845a7fa06a10a443a6509d216834df2, type: 3}
 --- !u!82 &7876359380430342986
 AudioSource:
   m_ObjectHideFlags: 0
