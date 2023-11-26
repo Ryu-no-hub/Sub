@@ -9,7 +9,7 @@ public class PlayerInput : MonoBehaviour
     [SerializeField] private LayerMask layerMask;
     private List<GameObject> selectedUnits = new List<GameObject>();
 
-    private List<MoveSubStandart> subScript = new List<MoveSubStandart>();
+    //private List<MoveSubStandart> subScript = new List<MoveSubStandart>();
 
     public GameObject subPrefab;
     int N = 0;
@@ -102,7 +102,7 @@ public class PlayerInput : MonoBehaviour
     {
         PointerEventData eventData = new PointerEventData(EventSystem.current);
         eventData.position = Input.mousePosition;
-        List<RaycastResult> raycastResults = new List<RaycastResult>();
+        List<RaycastResult> raycastResults = new();
         EventSystem.current.RaycastAll(eventData, raycastResults);
 
         for (int index = 0; index < raycastResults.Count; index++)

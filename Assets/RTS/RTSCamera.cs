@@ -13,6 +13,7 @@ public class RTSCamera : MonoBehaviour
 
     [Header("Movement Speeds")]
     [Space]
+    public bool enableMovement;
     public float minPanSpeed;
     public float maxPanSpeed;
     public float secToMaxSpeed; //seconds taken to reach max speed;
@@ -55,7 +56,7 @@ public class RTSCamera : MonoBehaviour
 
         panMovement = Vector3.zero;
 
-        if (!rotationActive)
+        if (!rotationActive && enableMovement)
         {
             if (mouseY >= ScreenHeight - ScreenEdgeBorderThickness)
             {

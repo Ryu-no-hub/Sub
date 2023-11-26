@@ -52,7 +52,8 @@ public class RTSSelection : MonoBehaviour
 
     private void Start()
     {
-       //UIPanel = GameObject.Find("Panel").gameObject;
+        //Physics.IgnoreLayerCollision( Collision(col, gameObject.GetComponent<MeshCollider>());
+        //UIPanel = GameObject.Find("Panel").gameObject;
         RectTransform[] rectTransforms = GameObject.FindObjectsOfType<RectTransform>(true);
         foreach(RectTransform child in rectTransforms)
         {
@@ -204,6 +205,8 @@ public class RTSSelection : MonoBehaviour
 
         // Set the collider mesh
         selectionCollider.sharedMesh = currentSelectionMesh;
+        selectionCollider.excludeLayers |= 1 << LayerMask.NameToLayer("Projectile");
+        //Physics.IgnoreLayerCollision( selectionCollider.ignoreLa
 
         StartCoroutine(ProcessTriggerHits());
     }
@@ -447,6 +450,7 @@ public class RTSSelection : MonoBehaviour
         mesh.name = "SelectionMesh";
         mesh.vertices = meshVerts;
         mesh.triangles = cubeTriangles;
+        
 
         return mesh;
     }
@@ -457,6 +461,8 @@ public class RTSSelection : MonoBehaviour
 
     private void OnTriggerEnter(Collider col)
     {
+        //if (col.gameObject.tag == "Projectile Model")
+        //    Physics.IgnoreCollision(col, selectionCollider);
         ISelectable selectable = col.GetComponentInParent<ISelectable>();
         TryAddToDetected(selectable);
     }

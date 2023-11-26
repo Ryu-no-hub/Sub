@@ -9,9 +9,9 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     private GameObject selectionSprite;
 
     // Movement parameters
-    private float force = 4f;
+    private float force = 10f;
     private float speed;
-    private float myDrag = 0.6f;
+    private float myDrag = 1f;
     private float ThrustDistCoeff = 0.1f, ThrustDirectionCoeff;
     private int rotationSpeedCoeff = 1500, steadyRotationCoeff = 20;
 
@@ -28,6 +28,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     private float targetDistance;
     private float stopTime, lastShotTime;
     private float dragDecel;
+    private float targetRotationY;
     private bool aligned = true;
     private float timer;
     private AudioSource submarineSource;
@@ -74,6 +75,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         targetDistance = targetDir.magnitude;
         selectionSprite = transform.Find("Selection Sprite").gameObject;
         submarineSource = GetComponent<AudioSource>();
+        targetRotationY = transform.localEulerAngles.y;
         moveMode = 0;
     }
 
@@ -95,7 +97,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         speed = Vector3.Magnitude(subRb.velocity);
         timer += Time.deltaTime;
 
-        print(transform.name + " speed = " + speed);
+        //print(transform.name + " speed = " + speed);
         //print("Timer = " + timer);
         //print("counter = " + counter);
         //print("Time.frameCount = " + Time.frameCount);
@@ -157,7 +159,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         else if (target == null && !aligned)
         {
             print(transform.name + " Turning WITHOUT target, y = "+ transform.localEulerAngles.y);
-            TurnToAnglesXY(0, transform.localEulerAngles.y, 1, true);
+            TurnToAnglesXY(0, targetRotationY, 1, true);
         }
         else if (target != null && team == 1 && ammo > 0)
         {
@@ -195,6 +197,10 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                 moveDestination = target.transform.position - (attackRange - 2) * targetDir.normalized;
             }
         }
+        else if (transform.eulerAngles.x != 0)
+        {
+            aligned = false;
+        }
 
         // Проверка на новую точку назначения
         if (moveDestination != Vector3.zero && moveDestination != oldmoveDestination)
@@ -205,7 +211,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             targetDir = moveDestination - currentPos;
             forwardTargetAngle = Vector3.Angle(forwardDir, targetDir);
             targetDistance = targetDir.magnitude;
-            if (forwardTargetAngle <= 45 || targetDistance > 20)// || target != null)
+            if (forwardTargetAngle <= 45 || targetDistance > 20) // || target != null)
             {
                 moveMode = 1;
             }
@@ -221,6 +227,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             Debug.Log("forwardTargetAngle " + forwardTargetAngle);
             Debug.Log("targetDistance " + targetDistance);
 
+            targetRotationY = Quaternion.LookRotation(targetDir, Vector3.up).eulerAngles.y;
 
             oldmoveDestination = moveDestination;
         }
@@ -334,12 +341,14 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         stopped = true;
         searching = false;
         print("STOPPED");
+        subRb.angularVelocity = Vector3.zero;
     }
 
     private void Shoot()
     {
 
         GameObject torpedo = Instantiate(torpPrefab, transform.position + transform.forward, transform.rotation);
+        torpedo.GetComponent<MoveTorpV1>().team = team;
         Physics.IgnoreCollision(gameObject.GetComponent<BoxCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
         forwardDir = transform.forward;
         torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 10 * forwardDir.normalized, ForceMode.Impulse);

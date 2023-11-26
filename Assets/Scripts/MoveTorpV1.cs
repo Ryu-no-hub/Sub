@@ -11,6 +11,7 @@ public class MoveTorpV1 : MonoBehaviour
     private float myDrag = 0.1f;
     public int moveMode = 0;
     private bool destroyed = false;
+    public int team;
 
     Vector3 forwardDirection;
     Vector3 currentPos;
@@ -139,29 +140,36 @@ public class MoveTorpV1 : MonoBehaviour
     //    }
     //}
 
+    private void DestroySequence()
+    {
+        foreach (Transform child in transform)
+        {
+            //print("Checking child: " + child.name);
+            if (child.transform.CompareTag("Projectile Model"))
+            {
+                destroyed = true;
+                explosion.Play();
+                torpedoAudio.PlayOneShot(torpedoExplosion, 0.1f);
+                Destroy(child.gameObject);
+
+                print("Destroyed: " + child.name);
+                break;
+            }
+        }
+        Destroy(gameObject, 2);
+    }
+
     private void OnTriggerEnter(Collider other)
     {
-        //print("Collision! " + other.gameObject.name);
+        print("Collision with " + other.gameObject.name);
         torpRb.velocity = Vector3.zero;
         moveMode = 0;
         bubbles.Stop();
-        if (!other.gameObject.CompareTag("Projectile"))
+        //if (!other.gameObject.CompareTag("Projectile") && other.gameObject.GetComponent<MoveSubStandart>().team != team)
+        if (!other.gameObject.CompareTag("Projectile Model"))
         {
-            foreach (Transform child in transform)
-            {
-                //print("Checking child: " + child.name);
-                if (child.transform.CompareTag("Model"))
-                {
-                    destroyed = true;
-                    explosion.Play();
-                    torpedoAudio.PlayOneShot(torpedoExplosion, 0.1f);
-                    Destroy(child.gameObject);
-
-                    print("Destroyed: " + child.name);
-                    break;
-                }
-            }
-            Destroy(gameObject, 2);
+            if(other.gameObject.layer != 3 && other.gameObject.GetComponent<MoveSubStandart>().team != team)
+                DestroySequence();
         }
 
     }

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2646463221517915720}
   - component: {fileID: 8444174663388347849}
   - component: {fileID: 8489317754663424289}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Bubbles
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4848,7 +4848,7 @@ GameObject:
   - component: {fileID: 3302442363463960439}
   - component: {fileID: 3302442363463960437}
   - component: {fileID: 3302442363463960438}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Squares Big
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9746,7 +9746,7 @@ GameObject:
   - component: {fileID: 3302442364004722508}
   - component: {fileID: 3302442364004722509}
   - component: {fileID: 3302442364004722510}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Arcade Spark
   m_TagString: Untagged
   m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
@@ -14647,7 +14647,7 @@ GameObject:
   - component: {fileID: 3302442364771652867}
   - component: {fileID: 3302442364771652865}
   - component: {fileID: 3302442364771652866}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Squares Small
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -19545,7 +19545,7 @@ GameObject:
   - component: {fileID: 3302442364988706141}
   - component: {fileID: 3302442364988706139}
   - component: {fileID: 3302442364988706140}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SpherePop
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -24444,9 +24444,9 @@ GameObject:
   - component: {fileID: 4920824216327390018}
   - component: {fileID: 8859044567444383523}
   - component: {fileID: 7075275552761014215}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: model
-  m_TagString: Model
+  m_TagString: Projectile Model
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -24549,7 +24549,7 @@ GameObject:
   - component: {fileID: 4387496042635441354}
   - component: {fileID: 4485305906009532426}
   - component: {fileID: 7876359380430342986}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Torpedo
   m_TagString: Projectile
   m_Icon: {fileID: 0}
