@@ -5,7 +5,7 @@ using UnityEngine;
 public class SearchTargets : MonoBehaviour
 {
     //private bool searching = false;
-
+    int N = 0;
     // Start is called before the first frame update
     void Start()
     {
@@ -19,20 +19,21 @@ public class SearchTargets : MonoBehaviour
         {
             //print("child = " + child.name);
             MoveSubStandart unitScript = child.GetComponent<MoveSubStandart>();
-            if (unitScript.moveMode == 0 && unitScript.stopped && !unitScript.searching)
+            if (unitScript.fixTarget == false && unitScript.stopped && !unitScript.searching)
             {
-                StartCoroutine(SearchTarget(child));
+                print("Started search routine " + (++N) + " for unit: " + child.name);
+                StartCoroutine(SearchTarget(child, N));
                 unitScript.searching = true;
             }
         }
     }
-    private IEnumerator SearchTarget(Transform unit)
+    private IEnumerator SearchTarget(Transform unit, int Num)
     {
         MoveSubStandart unitScript = unit.GetComponent<MoveSubStandart>();
         int attackRange = unitScript.attackRange;
 
-        print(unit.name + " Started search routine" + ", moveMode = " + unitScript.moveMode);
-        while (unitScript.moveMode == 0)
+        print("Entered search routine " + Num + " for unit: " + unit.name + ", behaviour = " + unitScript.behaviour);
+        while (unitScript.behaviour == MoveSubStandart.BehaviourState.Idle)
         {
             if (unit == null) break;
             float minDistance = float.MaxValue;
@@ -55,12 +56,14 @@ public class SearchTargets : MonoBehaviour
                     //print(unit.name + " recieved target option on distance = " + distance);
                 }
             }
-            if (unitScript.target == null && currentTarget!=null)
+            //if (unitScript.target == null && currentTarget!=null)
+            if (currentTarget!=null && currentTarget != unitScript.target)
             {
-                unitScript.target = currentTarget;
-                print("Setting target for " + unit.name + " - " + currentTarget==null ? "null" : currentTarget.name);
+                unitScript.SetAttackTarget(currentTarget, false);
+                print("Routine " + Num + " Setting target for " + unit.name + " - " + (currentTarget==null ? "null" : currentTarget.name));
             }
             yield return new WaitForSeconds(0.5f);
         }
+        print("Finished search routine " + Num + " for unit: " + unit.name);
     }
 }

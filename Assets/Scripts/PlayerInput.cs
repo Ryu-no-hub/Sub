@@ -179,10 +179,13 @@ public class PlayerInput : MonoBehaviour
                     minDistanceIndex = i;
                 }
             }
-            unit.GetComponent<MoveSubStandart>().moveDestination = targetPointsInLine[minDistanceIndex];
-            unit.GetComponent<MoveSubStandart>().target = null;
-            unit.GetComponent<MoveSubStandart>().stopped = false;
-            unit.GetComponent<MoveSubStandart>().moveMode = 1;
+
+            unit.GetComponent<MoveSubStandart>().SetMoveDestination(targetPointsInLine[minDistanceIndex], false);
+
+            //unit.GetComponent<MoveSubStandart>().moveDestination = targetPointsInLine[minDistanceIndex];
+            //unit.GetComponent<MoveSubStandart>().target = null;
+            //unit.GetComponent<MoveSubStandart>().stopped = false;
+            //unit.GetComponent<MoveSubStandart>().moveMode = MoveSubStandart.MoveMode.TurnToDirection;
 
             print("Target position = " + targetPointsInLine[minDistanceIndex] + " for " + unit.name);
             //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().moveDestinationition + " for " + unit.name);
@@ -194,22 +197,27 @@ public class PlayerInput : MonoBehaviour
     {
         foreach(GameObject child in selectedUnits)
         {
-            if (child == target) continue;
-            child.GetComponent<MoveSubStandart>().target = target;
-            print(target.name + " set as target for " + child.name);
-            print(child.GetComponent<MoveSubStandart>().target.name);
-
-            int unitAttackRange = child.GetComponent<MoveSubStandart>().attackRange;
-
-            if (Vector3.Distance(child.transform.position, target.transform.position) > unitAttackRange)
+            MoveSubStandart unitScript = child.GetComponent<MoveSubStandart>();
+            if (child == target)
             {
-                Vector3 targetDir = target.transform.position - child.transform.position;
-                child.GetComponent<MoveSubStandart>().moveDestination = target.transform.position - (unitAttackRange - 2) * targetDir.normalized ;
+                unitScript.Stop();
+                continue;
             }
-            else
-            {
-                child.GetComponent<MoveSubStandart>().Stop();
-            }
+            unitScript.SetAttackTarget(target, true);
+            print(target.name + " set as Fixed target for " + child.name);
+            //print(child.GetComponent<MoveSubStandart>().target.name);
+
+            //int unitAttackRange = child.GetComponent<MoveSubStandart>().attackRange;
+
+            //if (Vector3.Distance(child.transform.position, target.transform.position) > unitAttackRange)
+            //{
+            //    Vector3 targetDir = target.transform.position - child.transform.position;
+            //    child.GetComponent<MoveSubStandart>().moveDestination = target.transform.position - (unitAttackRange - 2) * targetDir.normalized ;
+            //}
+            //else
+            //{
+            //    child.GetComponent<MoveSubStandart>().Stop();
+            //}
         }
     }
 

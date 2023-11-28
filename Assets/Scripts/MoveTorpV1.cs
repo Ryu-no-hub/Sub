@@ -57,6 +57,7 @@ public class MoveTorpV1 : MonoBehaviour
         timer += Time.deltaTime;
         if (timer < 0.5) return;
 
+        targetPosition = target.transform.position;
         // —имул€ци€ сопротивлени€ среды
         startVelocity = torpRb.velocity;
         //newVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
@@ -112,7 +113,7 @@ public class MoveTorpV1 : MonoBehaviour
         targetDistance = newDirection.magnitude;
         targetPosition = target.transform.position;
 
-        Debug.Log(moveMode);
+        Debug.Log("Torpedo movemode = " + moveMode);
         Debug.Log("forwardTargetAngle " + forwardTargetAngle);
         Debug.Log("targetDistance " + targetDistance);
     }
@@ -166,11 +167,9 @@ public class MoveTorpV1 : MonoBehaviour
         moveMode = 0;
         bubbles.Stop();
         //if (!other.gameObject.CompareTag("Projectile") && other.gameObject.GetComponent<MoveSubStandart>().team != team)
-        if (!other.gameObject.CompareTag("Projectile Model"))
-        {
-            if(other.gameObject.layer != 3 && other.gameObject.GetComponent<MoveSubStandart>().team != team)
-                DestroySequence();
-        }
 
+        if (other.gameObject.layer == 3
+            || (!other.gameObject.CompareTag("Projectile Model") && (other.gameObject.GetComponent<MoveSubStandart>().team != team))) 
+            DestroySequence();
     }
 }
