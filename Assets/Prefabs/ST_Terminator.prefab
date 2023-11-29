@@ -10933,11 +10933,11 @@ GameObject:
   m_Component:
   - component: {fileID: 7341274820138349636}
   - component: {fileID: 9121378161622429914}
-  - component: {fileID: 7076697435111770177}
   - component: {fileID: 1238393419229814495}
   - component: {fileID: -501123329511615964}
   - component: {fileID: 1818836424169174490}
   - component: {fileID: 463180957153707146}
+  - component: {fileID: -1906321821112840000}
   m_Layer: 0
   m_Name: ST_Terminator
   m_TagString: Untagged
@@ -10995,27 +10995,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!65 &7076697435111770177
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7974364352938372862}
-  m_Material: {fileID: 13400000, guid: e59fc5f6090350e458784bd8aaa7424f, type: 2}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 4.206848, y: 3.456263, z: 7.318741}
-  m_Center: {x: 0.017944336, y: 1.7200172, z: -0.5613327}
 --- !u!23 &1238393419229814495
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -11070,6 +11049,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bba2e119a905114fa03037676566b01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  myDrag: 1
   attackRange: 40
   behaviour: 0
   torpPrefab: {fileID: 7978242595915190676, guid: 2ae87cab9b763e84cb70efe1c8e5a0bd, type: 3}
@@ -11190,6 +11170,29 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!136 &-1906321821112840000
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7974364352938372862}
+  m_Material: {fileID: 13400000, guid: e59fc5f6090350e458784bd8aaa7424f, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 1.8
+  m_Height: 7.28466
+  m_Direction: 2
+  m_Center: {x: 0, y: 1.6391103, z: -0.5389773}
 --- !u!1 &8469512554643390843
 GameObject:
   m_ObjectHideFlags: 0

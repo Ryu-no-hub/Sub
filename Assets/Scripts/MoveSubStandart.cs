@@ -358,7 +358,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         print(gameObject.name + " Created TORPEDO with target = " + target.name);
 
         torpedo.GetComponent<MoveTorpV1>().team = team;
-        Physics.IgnoreCollision(gameObject.GetComponent<BoxCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
+        Physics.IgnoreCollision(gameObject.GetComponent<CapsuleCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
         forwardDir = transform.forward;
         torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 10 * forwardDir.normalized, ForceMode.Impulse);
 

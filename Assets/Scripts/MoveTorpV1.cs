@@ -151,6 +151,9 @@ public class MoveTorpV1 : MonoBehaviour
                 destroyed = true;
                 explosion.Play();
                 torpedoAudio.PlayOneShot(torpedoExplosion, 0.1f);
+                torpRb.velocity = Vector3.zero;
+                moveMode = 0;
+                bubbles.Stop();
                 Destroy(child.gameObject);
 
                 print("Destroyed: " + child.name);
@@ -163,9 +166,6 @@ public class MoveTorpV1 : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         print("Collision with " + other.gameObject.name);
-        torpRb.velocity = Vector3.zero;
-        moveMode = 0;
-        bubbles.Stop();
         //if (!other.gameObject.CompareTag("Projectile") && other.gameObject.GetComponent<MoveSubStandart>().team != team)
 
         if (other.gameObject.layer == 3
