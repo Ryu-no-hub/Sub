@@ -17,9 +17,9 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     // Movement parameters
     private float power = 5f;
     private float speed;
-    private float myDrag = 1f;
+    public float myDrag = 1f;
     private float thrust;
-    private int rotationSpeedCoeff = 1500, steadyRotationCoeff = 20, borderDistance = 10;
+    private int rotationSpeedCoeff = 1500, steadyRotationCoeff = 20, borderDistance = 10, turnRadius = 20;
 
     //private float angleUp;
 
@@ -31,7 +31,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     private Vector3 currentPos, forwardDir, moveTargetDir, attackTargetDir, startVelocity, slowedVelocity;
     private Vector3 oldmoveDestination;
     private Quaternion newRotation;
-    private float forwardTargetAngle, velocityTargetAngle;
+    private float forwardTargetAngle, forwardTargetAngleStart, velocityTargetAngle;
     private float targetDistance;
     private float stopTime, lastShotTime;
     private float dragDecel;
@@ -95,14 +95,38 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     {
         timer += Time.deltaTime;
 
-        // Симуляция сопротивления среды
         startVelocity = subRb.velocity;
-        slowedVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
-        subRb.velocity = slowedVelocity;
-        speed = slowedVelocity.magnitude;
 
-        //print(transform.name + " speed = " + speed);
-        //print("targetDistance = " + targetDistance);
+        // Симуляция сопротивления среды
+        if (startVelocity.magnitude > 0.5f)
+        {
+            //slowedVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
+            //slowedVelocity = startVelocity * (1 - myDrag * Mathf.Clamp(startVelocity.magnitude, 1, 1000) * Time.deltaTime);
+
+            slowedVelocity = startVelocity * (1f - myDrag * Time.deltaTime);
+            subRb.velocity = slowedVelocity;
+            speed = slowedVelocity.magnitude;
+
+            //print(transform.name + " speed = " + speed);
+            //print("targetDistance = " + targetDistance);
+
+            // Проверка когда пора выключать двигатели
+            stopTime = targetDistance / speed;
+            dragDecel = (startVelocity.magnitude - slowedVelocity.magnitude) / Time.deltaTime;
+            velocityTargetAngle = Vector3.Angle(slowedVelocity, moveTargetDir);
+
+            //print("startVelocity = " + startVelocity.magnitude + ", slowedVelocity = " + slowedVelocity.magnitude);
+            //print("stopTime = " + stopTime + ", targetDistance = " + targetDistance  + ", speed = " + speed );
+            //print("real stop time = " + speed / dragDecel * myDrag + ", velocityTargetAngle = " + velocityTargetAngle);
+            //print("dragDecel = " + dragDecel);
+            //print("stopped = " + stopped + ", moveDestination = " + moveDestination);
+        }
+        else if(!stopped && moveDestination == Vector3.zero)
+        {
+            subRb.velocity = subRb.angularVelocity = slowedVelocity = Vector3.zero;
+            stopped = true;
+            print("Kill velocity");
+        }
 
         if (behaviour != BehaviourState.Idle)
         {
@@ -119,31 +143,22 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             switch (behaviour)
             {
                 case BehaviourState.TurnToDirection:
-                    if (forwardTargetAngle < 20)
+                    if (forwardTargetAngle < 90 / turnRadius * targetDistance)
                     {
                         behaviour = BehaviourState.FullThrottle;
                         print(behaviour);
                     }
                     break;
                 case BehaviourState.ReverseTurn:
-                    if (forwardTargetAngle < 20)
+                    if (forwardTargetAngle < forwardTargetAngleStart/1.5f)
                     {
-                        behaviour = BehaviourState.FullThrottle;
+                        behaviour = BehaviourState.TurnToDirection;
                         print(behaviour);
                     }
                     break;
             }
 
-            // Проверка когда пора выключать двигатели
-            stopTime = targetDistance / speed;
-            dragDecel = (startVelocity.magnitude - slowedVelocity.magnitude) / Time.deltaTime;
-            velocityTargetAngle = Vector3.Angle(slowedVelocity, moveTargetDir);
-
-            //print("startVelocity.magnitude = " + startVelocity.magnitude + ", slowedVelocity.magnitude = " + slowedVelocity.magnitude);
-            //print("stopTime = " + stopTime + ", targetDistance = " + targetDistance  + ", speed = " + speed );
-            //print("real stop time = " + speed / dragDecel * myDrag + ", velocityTargetAngle = " + velocityTargetAngle);
-            //print("dragDecel = " + dragDecel);
-            print("targetDistance = " + targetDistance + ", moveDestination = " + moveDestination + ", target = " + target);
+            
 
             if (target == null)
             {
@@ -170,23 +185,23 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                 }
             }
         }
-        else if (target == null && !aligned)
+        else if (target == null && !aligned) // Выравнивание без цели
         {
             //print(transform.name + " Aligning, angles = " + transform.localEulerAngles);
             TurnToAnglesXY(0, targetRotationY, 1, true);
         }
-        else if (target != null && team == 1 && ammo > 0)
+        else if (target != null && team == 1 && ammo > 0) // Выравнивание на цель
         {
             currentPos = transform.position;
             attackTargetDir = target.transform.position - transform.position;
             float angleTarget = Vector3.Angle(transform.forward, attackTargetDir);
 
-            if (angleTarget > 5) { aligned = false; }  // Включить поворот на цель
+            if (angleTarget > 5) { aligned = false; }  // Не выровнен
 
             if (!aligned) // Поворот на цель
             {
                 print(transform.name + " Turning to target, angle = " + angleTarget + ", attackTargetDir = " + attackTargetDir + ", target = " + target.name);
-                //newRotation = Quaternion.LookRotation(moveTargetDir - slowedVelocity); // Компенсация боковой скорости
+                //newRotation = Quaternion.LookRotation(moveTargetDir - slowedVelocity, Vector3.up); // Компенсация боковой скорости
 
                 newRotation = Quaternion.LookRotation(attackTargetDir, Vector3.up);
                 float targetAngleX = newRotation.eulerAngles.x;
@@ -276,8 +291,8 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         float angleDiffX = targetAngleX - currentAngleX; 
         float angleDiffY = targetAngleY - currentAngleY;
 
-
-        if (currentAngleZ > 1 || Mathf.Abs(angleDiffX) + Mathf.Abs(angleDiffY) > threshold) // Плавное выравнивание
+        // Плавное выравнивание
+        if (currentAngleZ > 1 || Mathf.Abs(angleDiffX) + Mathf.Abs(angleDiffY) > threshold) 
         {
             Quaternion targetRotation = Quaternion.Euler(targetAngleX, targetAngleY, -transform.localEulerAngles.z);
 
@@ -296,7 +311,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             Debug.DrawRay(currentPos, Vector3.up * 10, Color.red);
             return false;
         }
-        else if (hardAlignment)// Жёсткое выравнивание и остановка вращения
+        else if (hardAlignment) // Жёсткое выравнивание
         {
             print(gameObject.name + " Hard alignment");
 
@@ -319,20 +334,16 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     {
         print("ENGINES STOP, target = " + target);
 
-        behaviour = BehaviourState.Idle;
-        Invoke("Reset", stopTime);
-        moveDestination = Vector3.zero;
-        subRb.angularVelocity = Vector3.zero;
         trail.Stop();
+        behaviour = BehaviourState.Idle;
+        Invoke("SearchReset", stopTime);
+        subRb.angularVelocity = moveDestination = Vector3.zero;
     }
 
-    private void Reset()
+    private void SearchReset()
     {
-        print("STOPPED");
-
-        stopped = true;
+        print(gameObject.name + " Enable target search");
         searching = false;
-        subRb.angularVelocity = Vector3.zero;
     }
 
     //private void Shoot()
@@ -368,28 +379,37 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             fixTarget = false;
         }
         aligned = false;
+        stopped = false;
         forwardDir = transform.forward;
         currentPos = transform.position;
         moveTargetDir = moveDestination - currentPos;
         targetDistance = moveTargetDir.magnitude;
-        forwardTargetAngle = Vector3.Angle(forwardDir, moveTargetDir);
+        forwardTargetAngleStart = Vector3.Angle(forwardDir, moveTargetDir);
 
-        if (forwardTargetAngle <= 45 || targetDistance > 20)
+        if (forwardTargetAngleStart < 90)
         {
-            behaviour = BehaviourState.TurnToDirection;
+            if (forwardTargetAngleStart < 90 / turnRadius * targetDistance) // Вперёд
+            {
+                behaviour = BehaviourState.TurnToDirection;
+                targetRotationY = Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y;
+            }
+            else
+            {
+                behaviour = BehaviourState.ReverseTurn; // Назад, разворачиваясь к точке передом
+                targetRotationY = Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y;
+            }
+        }
+        else if ((targetDistance < turnRadius && forwardTargetAngleStart < 150) || targetDistance > turnRadius)
+        {
+            behaviour = BehaviourState.ReverseTurn; // Назад, разворачиваясь к точке передом
             targetRotationY = Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y;
         }
-        else if (forwardTargetAngle > 155)
+        else 
         {
-            behaviour = BehaviourState.Reverse; // Движение задом на точку
+            behaviour = BehaviourState.Reverse; // Задом на точку
             targetRotationY = transform.eulerAngles.y;
         }
-        else
-        {
-            behaviour = BehaviourState.ReverseTurn; // Движение задом, разворачиваясь к точке передом
-            targetRotationY = Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y;
-        }
-        Debug.Log(behaviour + ", moveDestination " + moveDestination + ", targetDistance " + targetDistance + ", forwardTargetAngle " + forwardTargetAngle);
+        Debug.Log(behaviour + ", moveDestination " + moveDestination + ", targetDistance " + targetDistance + ", forwardTargetAngleStart " + forwardTargetAngleStart);
 
         //oldmoveDestination = moveDestination;
     }

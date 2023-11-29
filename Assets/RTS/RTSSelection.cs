@@ -52,19 +52,16 @@ public class RTSSelection : MonoBehaviour
 
     private void Start()
     {
-        //Physics.IgnoreLayerCollision( Collision(col, gameObject.GetComponent<MeshCollider>());
-        //UIPanel = GameObject.Find("Panel").gameObject;
         RectTransform[] rectTransforms = GameObject.FindObjectsOfType<RectTransform>(true);
         foreach(RectTransform child in rectTransforms)
         {
-            //print("name = " + child.gameObject.name);
             if (child.gameObject.name == "Panel")
             {
                 UIPanel = child.gameObject;
                 break;
             }
         }
-        print("UIPanel.name = " + UIPanel.name);
+        //print("UIPanel.name = " + UIPanel.name);
     }
 
     /// <summary>
