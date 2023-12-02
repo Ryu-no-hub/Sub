@@ -12,6 +12,7 @@ public class PlayerInput : MonoBehaviour
     //private List<MoveSubStandart> subScript = new List<MoveSubStandart>();
 
     public GameObject subPrefab;
+    public GameObject subPrefab2;
     int N = 0;
 
     public RTSSelection selection;
@@ -83,7 +84,12 @@ public class PlayerInput : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            SpawnSub();
+            SpawnSub1();
+        }
+
+        if (Input.GetKeyDown(KeyCode.W))
+        {
+            SpawnSub2();
         }
 
         if (Input.GetKeyDown(KeyCode.Delete))
@@ -115,15 +121,26 @@ public class PlayerInput : MonoBehaviour
         return false;
     }
 
-    private void SpawnSub()
+    private void SpawnSub1()
     {
         Ray ray_spawn = mainCamera.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray_spawn, out RaycastHit rayCastHit_spawn, float.MaxValue))
         {
             Vector3 spawnPoint = rayCastHit_spawn.point + new Vector3(0, 3, 0);
             var newSub = Instantiate(subPrefab, spawnPoint, subPrefab.transform.rotation);
-            newSub.transform.parent = GameObject.Find("Units").transform;
+            newSub.transform.SetParent(GameObject.Find("Units").transform);
             newSub.name = subPrefab.name + " " + N++;
+        }
+    }
+    private void SpawnSub2()
+    {
+        Ray ray_spawn = mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray_spawn, out RaycastHit rayCastHit_spawn, float.MaxValue))
+        {
+            Vector3 spawnPoint = rayCastHit_spawn.point + new Vector3(0, 3, 0);
+            var newSub = Instantiate(subPrefab2, spawnPoint, subPrefab2.transform.rotation);
+            newSub.transform.SetParent(GameObject.Find("Units").transform);
+            newSub.name = subPrefab2.name + " " + N++;
         }
     }
         
@@ -180,7 +197,10 @@ public class PlayerInput : MonoBehaviour
                 }
             }
 
-            unit.GetComponent<MoveSubStandart>().SetMoveDestination(targetPointsInLine[minDistanceIndex], false);
+            if(selectedUnits.Count==1)
+                unit.GetComponent<MoveSubStandart>().SetMoveDestination(targetPointsInLine[minDistanceIndex], false, false);
+            else
+                unit.GetComponent<MoveSubStandart>().SetMoveDestination(targetPointsInLine[minDistanceIndex], false, true);
 
             //unit.GetComponent<MoveSubStandart>().moveDestination = targetPointsInLine[minDistanceIndex];
             //unit.GetComponent<MoveSubStandart>().target = null;

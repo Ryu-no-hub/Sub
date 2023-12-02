@@ -44,7 +44,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
 
     public enum BehaviourState { FullThrottle, TurnToDirection, Reverse, ReverseTurn, StillApproach, Idle, Attacking};
     public GameObject torpPrefab, target = null;
-    public Vector3 moveDestination = Vector3.zero;
+    public Vector3 moveDestination;
     //public int behaviour = 0;
     //public int behaviour = 0;
     public bool stopped = true, searching = false, fixTarget = false;
@@ -81,6 +81,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         print("trail = " + trail);
         forwardDir = transform.forward;
         currentPos = transform.position;
+        moveDestination = Vector3.zero;
         moveTargetDir = moveDestination - currentPos;
         forwardTargetAngle = Vector3.Angle(forwardDir, moveTargetDir);
         targetDistance = moveTargetDir.magnitude;
@@ -88,6 +89,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         submarineSource = GetComponent<AudioSource>();
         targetRotationY = transform.localEulerAngles.y;
         behaviour = BehaviourState.Idle;
+        stopped = false;
     }
 
     // Update is called once per frame
@@ -370,7 +372,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
 
     }
 
-    public void SetMoveDestination(Vector3 moveDestination, bool withTartget)
+    public void SetMoveDestination(Vector3 moveDestination, bool withTartget, bool moveInGroup = true)
     {
         this.moveDestination = moveDestination;
         if (!withTartget)
@@ -407,7 +409,11 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         else 
         {
             behaviour = BehaviourState.Reverse; // Задом на точку
-            targetRotationY = transform.eulerAngles.y;
+            if(moveInGroup)
+                targetRotationY = Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y;
+            else
+                targetRotationY = transform.eulerAngles.y;
+            
         }
         Debug.Log(behaviour + ", moveDestination " + moveDestination + ", targetDistance " + targetDistance + ", forwardTargetAngleStart " + forwardTargetAngleStart);
 
@@ -424,5 +430,10 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         if(Vector3.Distance(transform.position, target.transform.position) > attackRange)
             SetMoveDestination(target.transform.position, true);
         //Debug.Log("Set attack target, position = " + targetPosition);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        stopped = false;
     }
 }

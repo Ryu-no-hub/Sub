@@ -10938,6 +10938,7 @@ GameObject:
   - component: {fileID: 1818836424169174490}
   - component: {fileID: 463180957153707146}
   - component: {fileID: -1906321821112840000}
+  - component: {fileID: 6844162630270215198}
   m_Layer: 0
   m_Name: ST_Terminator
   m_TagString: Untagged
@@ -10945,18 +10946,17 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7341274820138349636
-Transform:
+--- !u!224 &7341274820138349636
+RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7974364352938372862}
-  serializedVersion: 2
   m_LocalRotation: {x: 0.06878299, y: 0.14751174, z: -0.010283979, w: 0.98661214}
-  m_LocalPosition: {x: 193.6, y: 9.73, z: 247.29}
+  m_LocalPosition: {x: 0, y: 0, z: 247.29}
   m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
-  m_ConstrainProportionsScale: 1
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4490509369832098206}
   - {fileID: 1032513165480813539}
@@ -10968,6 +10968,11 @@ Transform:
   - {fileID: 2350407616631494250}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 7.976, y: 17.007, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 193.6, y: 9.73}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!54 &9121378161622429914
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -11193,6 +11198,14 @@ CapsuleCollider:
   m_Height: 7.28466
   m_Direction: 2
   m_Center: {x: 0, y: 1.6391103, z: -0.5389773}
+--- !u!222 &6844162630270215198
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7974364352938372862}
+  m_CullTransparentMesh: 1
 --- !u!1 &8469512554643390843
 GameObject:
   m_ObjectHideFlags: 0
