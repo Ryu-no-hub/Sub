@@ -9,7 +9,7 @@ using UnityEngine.EventSystems;
 /// </summary>
 public class RTSCamera : MonoBehaviour
 {
-    public float ScreenEdgeBorderThickness = 5.0f; // distance from screen edge. Used for mouse movement
+    private float ScreenEdgeBorderThickness = 50f; // distance from screen edge. Used for mouse movement
 
     [Header("Movement Speeds")]
     [Space]
@@ -61,18 +61,22 @@ public class RTSCamera : MonoBehaviour
             if (mouseY >= ScreenHeight - ScreenEdgeBorderThickness)
             {
                 panMovement += panSpeed * Time.deltaTime * Vector3.left;
+                panMovement += (mouseX - ScreenWidth / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.forward;
             }
-            if (mouseY <= ScreenEdgeBorderThickness)
+            else if (mouseY <= ScreenEdgeBorderThickness)
             {
                 panMovement += panSpeed * Time.deltaTime * Vector3.right;
+                panMovement += (mouseX - ScreenWidth / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.forward;
             }
-            if (mouseX <= ScreenEdgeBorderThickness)
+            else if (mouseX <= ScreenEdgeBorderThickness)
             {
                 panMovement -= panSpeed * Time.deltaTime * Vector3.forward;
+                panMovement += (mouseY - ScreenHeight / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.left;
             }
-            if (mouseX >= ScreenWidth - ScreenEdgeBorderThickness)
+            else if (mouseX >= ScreenWidth - ScreenEdgeBorderThickness)
             {
                 panMovement += panSpeed * Time.deltaTime * Vector3.forward;
+                panMovement += (mouseY - ScreenHeight / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.left;
             }
 
             transform.Translate(panMovement, Space.World);
