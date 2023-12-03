@@ -2155,8 +2155,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bf75e9d121bf7842b7c960822d4bb81, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ScreenEdgeBorderThickness: 5
-  enableMovement: 0
+  enableMovement: 1
   minPanSpeed: 20
   maxPanSpeed: 50
   secToMaxSpeed: 0.5
