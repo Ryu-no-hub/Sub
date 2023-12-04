@@ -13,9 +13,15 @@ public class PlayerInput : MonoBehaviour
 
     public GameObject subPrefab;
     public GameObject subPrefab2;
-    int N = 0;
+    private int N = 0;
+    private float timer=0;
+    private float targetRotationY = 0;
+    private bool arrowSpawned=false;
 
     public RTSSelection selection;
+    public GameObject arrowPrefab;
+    private GameObject arrowInstance;
+    private Vector3 initialMovePoint, currentMovePoint;
 
     void Start()
     {
@@ -60,26 +66,87 @@ public class PlayerInput : MonoBehaviour
             if (IsPointerOverUIElement())
                 return;
 
+            foreach (Transform child in transform)
+            {
+                if (child.gameObject.transform.Find("Selection Sprite").gameObject.activeSelf)
+                    selectedUnits.Add(child.gameObject);
+            }
+            if (selectedUnits.Count == 0)
+                return;
+
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit raycastHit, float.MaxValue, layerMask))
             {
                 print("Order raycast point  = " + raycastHit.point + ", object hit = " + raycastHit.collider.gameObject.name + ", layer = " + raycastHit.collider.gameObject.layer);
 
-                foreach (Transform child in transform)
-                {
-                    if (child.gameObject.transform.Find("Selection Sprite").gameObject.activeSelf)
-                        selectedUnits.Add(child.gameObject);
-                }
-
                 if (raycastHit.collider.gameObject.layer == 3) // Ground
-                    MoveOrder(raycastHit);
-                else // Not Ground, therefore - Unit
+                    initialMovePoint = raycastHit.point; //MoveOrder(raycastHit);
+                else // Not Ground, therefore Unit
                 {
                     GameObject target = raycastHit.collider.gameObject;
-                    AttackSingleOrder(target);
+                    MoveSubStandart unitScript = target.GetComponent<MoveSubStandart>();
+
+                    if (!unitScript)
+                        return;
+                    // Если объект из своей команды, двигаться на его место
+                    if (unitScript.team == selectedUnits[0].GetComponent<MoveSubStandart>().team)
+                        initialMovePoint = raycastHit.point; //MoveOrder(raycastHit);
+                    else
+                        AttackSingleOrder(target);
                 }
-                selectedUnits.Clear();
+            }            
+        }
+
+        if (Input.GetMouseButton(1))
+        {
+            timer += Time.deltaTime;
+            //print(arrowSpawned + ", timer = " + timer + ", length = " + (currentMovePoint.magnitude - initialMovePoint.magnitude));
+            if (!arrowSpawned && timer > 0.5)
+            {
+                if (initialMovePoint == Vector3.zero) return;
+
+                Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+                if(Physics.Raycast(ray, out RaycastHit raycastHit, float.MaxValue, layerMask))
+                {
+                    currentMovePoint = raycastHit.point;
+                }
+
+                if ((currentMovePoint - initialMovePoint).magnitude < 1) return;
+
+                Quaternion arrowRotation = Quaternion.LookRotation(currentMovePoint - initialMovePoint, Vector3.up);
+                arrowInstance = Instantiate(arrowPrefab, initialMovePoint + (currentMovePoint - initialMovePoint)/2, arrowRotation); 
+                arrowSpawned = true;
             }
+            else if (arrowSpawned)
+            {
+                Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+                if (Physics.Raycast(ray, out RaycastHit raycastHit, float.MaxValue, layerMask))
+                {
+                    currentMovePoint = raycastHit.point;
+                }
+                arrowInstance.transform.rotation = Quaternion.LookRotation(currentMovePoint - initialMovePoint, Vector3.up);
+                arrowInstance.transform.eulerAngles = new Vector3(90, arrowInstance.transform.eulerAngles.y - 90, 0); 
+
+                arrowInstance.transform.position = (initialMovePoint + currentMovePoint) / 2 + 5 * Vector3.up;
+
+                arrowInstance.transform.localScale = Vector3.one * Vector3.Distance(currentMovePoint, initialMovePoint) / 11;
+                Debug.DrawLine(initialMovePoint, currentMovePoint, Color.blue);
+            }
+        }
+
+        if (Input.GetMouseButtonUp(1))
+        {
+            timer = 0;
+            if (arrowSpawned)
+            {
+                targetRotationY = arrowInstance.transform.eulerAngles.y + 90;
+                Destroy(arrowInstance);
+                arrowSpawned = false;
+            }
+            MoveOrder(initialMovePoint);
+            print("initialMovePoint = " + initialMovePoint);
+            initialMovePoint = Vector3.zero;
+            selectedUnits.Clear();
         }
 
         if (Input.GetKeyDown(KeyCode.Q))
@@ -144,9 +211,10 @@ public class PlayerInput : MonoBehaviour
         }
     }
         
-    private void MoveOrder(RaycastHit raycastHit)
+    private void MoveOrder(Vector3 targetPosition)
     {
         int totalUnits = selectedUnits.Count;
+        print("totalUnits = " + totalUnits);
         float unitSpacing = 7; // Adjust this value to control the spacing between units
 
         // Calculate the total length of the line
@@ -168,17 +236,24 @@ public class PlayerInput : MonoBehaviour
         //Debug.Log("wayLine final = " + wayLine);
 
         // Calculate the starting position of the line
-        Vector3 avgDirection = (wayLine - raycastHit.point);
+        Vector3 avgDirection = wayLine - targetPosition;
         avgDirection.y = 0;
-        //Debug.Log("avgDirection.normalized = " + avgDirection.normalized);
-        Vector3 lineStart = raycastHit.point - (lineLength / 2) * Vector3.Cross(avgDirection.normalized, Vector3.up);
-        Debug.DrawLine(wayLine, raycastHit.point, Color.cyan, 3.0f);
+        Vector3 lineStart, targetDirection;
+        if (targetRotationY == 0)
+            targetDirection = avgDirection.normalized;
+        else
+            targetDirection = (currentMovePoint - initialMovePoint).normalized;
+            //targetDirection = new Vector3(0, targetRotationY, 0);
+        Debug.Log("targetDirection = " + targetDirection);
+        lineStart = targetPosition - (lineLength / 2) * Vector3.Cross(targetDirection, Vector3.up);
+        Debug.Log("Vector3.Cross(targetDirection, Vector3.up) = " + Vector3.Cross(targetDirection, Vector3.up));
+        Debug.DrawLine(wayLine, targetPosition, Color.cyan, 3.0f);
 
         for (i = 0; i < totalUnits; i++)
         {
-            targetPointsInLine[i] = lineStart + i * unitSpacing * Vector3.Cross(avgDirection.normalized, Vector3.up);
+            targetPointsInLine[i] = lineStart + i * unitSpacing * Vector3.Cross(targetDirection, Vector3.up);
             targetPointsInLine[i].y += 3; 
-            //print("targetPointsInLine[" + i + "] = " + targetPointsInLine[i]);
+            print("targetPointsInLine[" + i + "] = " + targetPointsInLine[i]);
         }
 
         foreach (GameObject unit in selectedUnits)
@@ -188,20 +263,20 @@ public class PlayerInput : MonoBehaviour
             for (i = 0; i < totalUnits; i++)
             {
                 float distToTargetPoint = Vector3.Distance(unit.transform.position, targetPointsInLine[i]);
-                //print("compare: unitpos = " + unit.transform.position + ", target = " + targetPointsInLine[i]);
-                //print("compare: distToTargetPoint " + distToTargetPoint + " | " + minDistance + " = minDistance" + " unit: " + unit.name);
+                print("compare: unitpos = " + unit.transform.position + ", target = " + targetPointsInLine[i]);
+                print("compare: distToTargetPoint " + distToTargetPoint + " | " + minDistance + " = minDistance" + " unit: " + unit.name);
                 if (distToTargetPoint < minDistance)
                 {
                     minDistance = distToTargetPoint;
                     minDistanceIndex = i;
                 }
             }
+            MoveSubStandart unitScriptStandart = unit.GetComponent<MoveSubStandart>();
 
-            if(selectedUnits.Count==1)
-                unit.GetComponent<MoveSubStandart>().SetMoveDestination(targetPointsInLine[minDistanceIndex], false, false);
-            else
-                unit.GetComponent<MoveSubStandart>().SetMoveDestination(targetPointsInLine[minDistanceIndex], false, true);
-
+            bool isGroup = selectedUnits.Count > 1;
+            print("targetRotationY = " + targetRotationY);
+            unitScriptStandart.SetMoveDestination(targetPointsInLine[minDistanceIndex], false, targetRotationY, moveInGroup: isGroup);
+            
             //unit.GetComponent<MoveSubStandart>().moveDestination = targetPointsInLine[minDistanceIndex];
             //unit.GetComponent<MoveSubStandart>().target = null;
             //unit.GetComponent<MoveSubStandart>().stopped = false;
@@ -212,6 +287,7 @@ public class PlayerInput : MonoBehaviour
             Debug.DrawLine(unit.transform.position, targetPointsInLine[minDistanceIndex], Color.black, 10.0f);
             targetPointsInLine[minDistanceIndex] = new Vector3(int.MaxValue, int.MaxValue, int.MaxValue);
         }
+        targetRotationY = 0;
     }
     private void AttackSingleOrder(GameObject target)
     {

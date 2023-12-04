@@ -9,7 +9,7 @@ using UnityEngine.EventSystems;
 /// </summary>
 public class RTSCamera : MonoBehaviour
 {
-    private float ScreenEdgeBorderThickness = 50f; // distance from screen edge. Used for mouse movement
+    private float ScreenEdgeBorderThickness = 20f; // distance from screen edge. Used for mouse movement
 
     [Header("Movement Speeds")]
     [Space]

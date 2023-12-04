@@ -19,6 +19,8 @@ public class SearchTargets : MonoBehaviour
         {
             //print("child = " + child.name);
             MoveSubStandart unitScript = child.GetComponent<MoveSubStandart>();
+            if (!unitScript)
+                continue;
             if (unitScript.fixTarget == false && unitScript.stopped && !unitScript.searching)
             {
                 print("Started search routine " + (++N) + " for unit: " + child.name);
@@ -45,7 +47,9 @@ public class SearchTargets : MonoBehaviour
                 //print(unit.name + " Checking potential target: " + child);
                 if (child.transform == unit || child==null || unit==null) continue;
 
-                if (child.GetComponent<MoveSubStandart>().team == unitScript.team) continue;
+                MoveSubStandart childScript = child.GetComponent<MoveSubStandart>();
+                if (!childScript) continue;
+                if (childScript.team == unitScript.team) continue;
                 //print(unit.name + " PASSED CHECKS ");
 
                 distance = Vector3.Distance(unit.position, child.position);

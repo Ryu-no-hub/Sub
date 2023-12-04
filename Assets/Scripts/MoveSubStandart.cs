@@ -11,7 +11,7 @@ public class Order{
 public class MoveSubStandart : MonoBehaviour, ISelectable
 {
     private Rigidbody subRb;
-    private ParticleSystem bubblesLeft, bubblesRight, trail;
+    private ParticleSystem trail;
     private GameObject selectionSprite;
 
     // Movement parameters
@@ -19,9 +19,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     private float speed;
     public float myDrag = 1f;
     private float thrust;
-    private int rotationSpeedCoeff = 1500, steadyRotationCoeff = 20, borderDistance = 10, turnRadius = 20;
-
-    //private float angleUp;
+    private int rotationSpeedCoeff = 1500, steadyYawSpeed, steadyPitchSpeed=10, borderDistance = 10, turnRadius = 20;
 
     // Attack parameters
     private float reloadTime = 3f;
@@ -29,7 +27,6 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     public int attackRange = 40;
 
     private Vector3 currentPos, forwardDir, moveTargetDir, attackTargetDir, startVelocity, slowedVelocity;
-    private Vector3 oldmoveDestination;
     private Quaternion newRotation;
     private float forwardTargetAngle, forwardTargetAngleStart, velocityTargetAngle;
     private float targetDistance;
@@ -40,13 +37,12 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     private float timer;
     private AudioSource submarineSource;
     public BehaviourState behaviour;
+    private string unitName;
     //private Order;
 
     public enum BehaviourState { FullThrottle, TurnToDirection, Reverse, ReverseTurn, StillApproach, Idle, Attacking};
     public GameObject torpPrefab, target = null;
     public Vector3 moveDestination;
-    //public int behaviour = 0;
-    //public int behaviour = 0;
     public bool stopped = true, searching = false, fixTarget = false;
     public AudioClip launchTorpedoSound;
 
@@ -90,6 +86,10 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         targetRotationY = transform.localEulerAngles.y;
         behaviour = BehaviourState.Idle;
         stopped = false;
+        unitName = gameObject.name;
+        if (unitName.IndexOf(' ') != -1) unitName = unitName.Substring(0, unitName.IndexOf(' '));
+        steadyYawSpeed = unitName == "ST_Terminator" ? 10 : 0;
+        //print(unitName + ", steadyYawSpeed = " + steadyYawSpeed);
     }
 
     // Update is called once per frame
@@ -221,7 +221,10 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                     print("SHOOT! Time = " + timer);
                     submarineSource.PlayOneShot(launchTorpedoSound, 0.1f);
                     //Invoke("Shoot", 0.1f);
-                    StartCoroutine(Shoot(target));
+                    if(unitName== "ST_Terminator")
+                        StartCoroutine(Shoot(target, 0.1f));
+                    else
+                        StartCoroutine(Shoot(target, 0.25f));
                 }
                 //else if(team==1) print("timer - lastShotTime = " + (timer - lastShotTime));
             }
@@ -290,24 +293,39 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         currentAngleY = currentAngleY < 180 ? currentAngleY : currentAngleY - 360;
         currentAngleZ = currentAngleZ < 180 ? currentAngleZ : currentAngleZ - 360;
 
-        float angleDiffX = targetAngleX - currentAngleX; 
-        float angleDiffY = targetAngleY - currentAngleY;
-
-        // Плавное выравнивание
-        if (currentAngleZ > 1 || Mathf.Abs(angleDiffX) + Mathf.Abs(angleDiffY) > threshold) 
+        if (steadyYawSpeed == 0 && stopped)
         {
-            Quaternion targetRotation = Quaternion.Euler(targetAngleX, targetAngleY, -transform.localEulerAngles.z);
+            aligned = true;
+            return true;
+        }
+
+        Vector2 angleDiff = new(targetAngleX - currentAngleX, targetAngleY - currentAngleY);
+        // Плавное выравнивание
+        if (currentAngleZ > 1 || angleDiff.magnitude > threshold) 
+        {
+            Quaternion targetRotationY = Quaternion.Euler(transform.localEulerAngles.x, targetAngleY, -transform.localEulerAngles.z);
 
             //print(transform.name + " Current angles = " + transform.localEulerAngles);
             //print(transform.name + " Turning to " + targetRotation.eulerAngles);
 
-            float turnSpeed = steadyRotationCoeff;
+            float turnSpeedYaw = steadyYawSpeed;
             if (speed > 1)
             {
-                turnSpeed *= Mathf.Sqrt(speed); // Компонента скорости поворота, зависящая от скорости
-                //print(transform.name + " Speed modified turnSpeed = " + turnSpeed);
+                turnSpeedYaw += Mathf.Sqrt(speed); // Компонента скорости поворота, зависящая от скорости
             }
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotationY, turnSpeedYaw * Time.deltaTime);
+            print(transform.name + " turnSpeedYaw = " + turnSpeedYaw);
+
+
+            Quaternion targetRotationX = Quaternion.Euler(targetAngleX, transform.localEulerAngles.y, 0);
+
+            float turnSpeedPitch = steadyPitchSpeed;
+            if (speed > 1)
+            {
+                turnSpeedPitch += Mathf.Sqrt(speed); // Компонента скорости поворота, зависящая от скорости
+            }
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotationX, turnSpeedPitch * Time.deltaTime);
+            print(transform.name + " turnSpeedPitch = " + turnSpeedPitch);
 
             Debug.DrawRay(currentPos, transform.up * 10, Color.green);
             Debug.DrawRay(currentPos, Vector3.up * 10, Color.red);
@@ -324,7 +342,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         }
         else // Достаточно близко
         {
-            print(gameObject.name + " Alignment threshold reached, angleDiffX = " + angleDiffX + ", angleDiffY = " + angleDiffY);
+            print(gameObject.name + " Alignment threshold reached, angleDiff = " + angleDiff.magnitude);
 
             aligned = true;
             subRb.angularVelocity = Vector3.zero;
@@ -349,9 +367,9 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     }
 
     //private void Shoot()
-    private IEnumerator Shoot(GameObject target)
+    private IEnumerator Shoot(GameObject target, float delay)
     {
-        yield return new WaitForSeconds(0.1f);
+        yield return new WaitForSeconds(delay);
 
         ammo--;
         GameObject torpedo = Instantiate(torpPrefab, transform.position + transform.forward, transform.rotation);
@@ -372,9 +390,10 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
 
     }
 
-    public void SetMoveDestination(Vector3 moveDestination, bool withTartget, bool moveInGroup = true)
+    public void SetMoveDestination(Vector3 moveDestination, bool withTartget, float recievedTargetRotationY = 0, bool moveInGroup = true)
     {
         this.moveDestination = moveDestination;
+
         if (!withTartget)
         {
             target = null;
@@ -393,27 +412,29 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             if (forwardTargetAngleStart < 90 / turnRadius * targetDistance) // Вперёд
             {
                 behaviour = BehaviourState.TurnToDirection;
-                targetRotationY = Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y;
+                //if (steadyYawSpeed == 0) targetRotationY = recievedTargetRotationY;
+                targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
             }
             else
             {
                 behaviour = BehaviourState.ReverseTurn; // Назад, разворачиваясь к точке передом
-                targetRotationY = Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y;
+                targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
             }
         }
         else if ((targetDistance < turnRadius && forwardTargetAngleStart < 150) || targetDistance > turnRadius)
         {
             behaviour = BehaviourState.ReverseTurn; // Назад, разворачиваясь к точке передом
-            targetRotationY = Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y;
+            targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
         }
         else 
         {
             behaviour = BehaviourState.Reverse; // Задом на точку
-            if(moveInGroup)
+            if (recievedTargetRotationY != 0)
+                targetRotationY = recievedTargetRotationY;
+            else if (moveInGroup)
                 targetRotationY = Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y;
-            else
+            else 
                 targetRotationY = transform.eulerAngles.y;
-            
         }
         Debug.Log(behaviour + ", moveDestination " + moveDestination + ", targetDistance " + targetDistance + ", forwardTargetAngleStart " + forwardTargetAngleStart);
 

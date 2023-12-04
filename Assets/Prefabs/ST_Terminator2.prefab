@@ -228,7 +228,7 @@ GameObject:
   - component: {fileID: 3875721563787511315}
   - component: {fileID: 4283539036567063914}
   - component: {fileID: 9155433038028316923}
-  - component: {fileID: 492334013683163264}
+  - component: {fileID: -1551560215671283752}
   - component: {fileID: 5073147488205834892}
   - component: {fileID: 3003567950006377974}
   - component: {fileID: 8321620224296569224}
@@ -336,7 +336,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &492334013683163264
+--- !u!114 &-1551560215671283752
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -357,7 +357,7 @@ MonoBehaviour:
   stopped: 1
   searching: 0
   fixTarget: 0
-  launchTorpedoSound: {fileID: 8300000, guid: 762286d9af2999748bf26881d9b7df67, type: 3}
+  launchTorpedoSound: {fileID: 8300000, guid: 259c48eba69fdf44c86dc3e1ff6e4e7d, type: 3}
   team: 1
 --- !u!114 &5073147488205834892
 MonoBehaviour:
