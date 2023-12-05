@@ -1824,6 +1824,7 @@ MonoBehaviour:
   torpPrefab: {fileID: 0}
   target: {fileID: 0}
   moveDestination: {x: 0, y: 0, z: 0}
+  intermediateDestination: {x: 0, y: 0, z: 0}
   stopped: 1
   searching: 0
   fixTarget: 0

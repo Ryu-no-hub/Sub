@@ -15,19 +15,20 @@ public class PlayerInput : MonoBehaviour
     public GameObject subPrefab2;
     private int N = 0;
     private float timer=0;
-    private float targetRotationY = 0;
+    private float targetRotationY = 0, arrowSize;
     private bool arrowSpawned=false;
 
     public RTSSelection selection;
     public GameObject arrowPrefab;
     private GameObject arrowInstance;
-    private Vector3 initialMovePoint, currentMovePoint;
-
+    private Vector3 initialMovePoint, currentMovePoint, initialMousePos;
+    
     void Start()
     {
         //print("???"+subPrefab);
         //print(transform.position);
         //print(gameObject.name);
+        arrowSize = arrowPrefab.GetComponent<SpriteRenderer>().bounds.size.x;
     }
 
     // Update is called once per frame
@@ -78,7 +79,7 @@ public class PlayerInput : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit raycastHit, float.MaxValue, layerMask))
             {
                 print("Order raycast point  = " + raycastHit.point + ", object hit = " + raycastHit.collider.gameObject.name + ", layer = " + raycastHit.collider.gameObject.layer);
-
+                initialMousePos = Input.mousePosition;
                 if (raycastHit.collider.gameObject.layer == 3) // Ground
                     initialMovePoint = raycastHit.point; //MoveOrder(raycastHit);
                 else // Not Ground, therefore Unit
@@ -100,37 +101,34 @@ public class PlayerInput : MonoBehaviour
         if (Input.GetMouseButton(1))
         {
             timer += Time.deltaTime;
+            if (initialMovePoint == Vector3.zero) return;
             //print(arrowSpawned + ", timer = " + timer + ", length = " + (currentMovePoint.magnitude - initialMovePoint.magnitude));
-            if (!arrowSpawned && timer > 0.5)
+            Vector3 mousePos = Input.mousePosition, spawnPos;
+            float stretch = (initialMousePos - mousePos).magnitude, angle, scale;
+            int stretchStart = 100;
+
+            angle = -Vector3.SignedAngle(Vector3.up, initialMousePos - mousePos, Vector3.forward);
+            //print("Signed Angle = " + -angle);
+            if (stretch > stretchStart)
             {
-                if (initialMovePoint == Vector3.zero) return;
-
-                Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-                if(Physics.Raycast(ray, out RaycastHit raycastHit, float.MaxValue, layerMask))
+                spawnPos = initialMovePoint + 5 * Vector3.up + (Quaternion.AngleAxis(angle, Vector3.up) * Vector3.right * arrowSize * stretch / stretchStart / 2);
+                if (!arrowSpawned)
                 {
-                    currentMovePoint = raycastHit.point;
+                    arrowInstance = Instantiate(arrowPrefab, spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
+                    arrowSpawned = true;
                 }
-
-                if ((currentMovePoint - initialMovePoint).magnitude < 1) return;
-
-                Quaternion arrowRotation = Quaternion.LookRotation(currentMovePoint - initialMovePoint, Vector3.up);
-                arrowInstance = Instantiate(arrowPrefab, initialMovePoint + (currentMovePoint - initialMovePoint)/2, arrowRotation); 
-                arrowSpawned = true;
+                else
+                {
+                    scale = stretch / stretchStart;
+                    arrowInstance.transform.SetPositionAndRotation(spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
+                    arrowInstance.transform.localScale = Vector3.one * scale;
+                    //print("position = " + arrowInstance.transform.position + ", angle = " + angle + ", scale = " + scale + ", stretch = " + stretch);
+                }
             }
             else if (arrowSpawned)
             {
-                Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-                if (Physics.Raycast(ray, out RaycastHit raycastHit, float.MaxValue, layerMask))
-                {
-                    currentMovePoint = raycastHit.point;
-                }
-                arrowInstance.transform.rotation = Quaternion.LookRotation(currentMovePoint - initialMovePoint, Vector3.up);
-                arrowInstance.transform.eulerAngles = new Vector3(90, arrowInstance.transform.eulerAngles.y - 90, 0); 
-
-                arrowInstance.transform.position = (initialMovePoint + currentMovePoint) / 2 + 5 * Vector3.up;
-
-                arrowInstance.transform.localScale = Vector3.one * Vector3.Distance(currentMovePoint, initialMovePoint) / 11;
-                Debug.DrawLine(initialMovePoint, currentMovePoint, Color.blue);
+                spawnPos = initialMovePoint + 5 * Vector3.up + (Quaternion.AngleAxis(angle, Vector3.up) * Vector3.right * arrowSize / 2);
+                arrowInstance.transform.SetPositionAndRotation(spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
             }
         }
 
@@ -244,16 +242,16 @@ public class PlayerInput : MonoBehaviour
         else
             targetDirection = (currentMovePoint - initialMovePoint).normalized;
             //targetDirection = new Vector3(0, targetRotationY, 0);
-        Debug.Log("targetDirection = " + targetDirection);
+        //Debug.Log("targetDirection = " + targetDirection);
         lineStart = targetPosition - (lineLength / 2) * Vector3.Cross(targetDirection, Vector3.up);
-        Debug.Log("Vector3.Cross(targetDirection, Vector3.up) = " + Vector3.Cross(targetDirection, Vector3.up));
+        //Debug.Log("Vector3.Cross(targetDirection, Vector3.up) = " + Vector3.Cross(targetDirection, Vector3.up));
         Debug.DrawLine(wayLine, targetPosition, Color.cyan, 3.0f);
 
         for (i = 0; i < totalUnits; i++)
         {
             targetPointsInLine[i] = lineStart + i * unitSpacing * Vector3.Cross(targetDirection, Vector3.up);
             targetPointsInLine[i].y += 3; 
-            print("targetPointsInLine[" + i + "] = " + targetPointsInLine[i]);
+            //print("targetPointsInLine[" + i + "] = " + targetPointsInLine[i]);
         }
 
         foreach (GameObject unit in selectedUnits)
@@ -263,8 +261,8 @@ public class PlayerInput : MonoBehaviour
             for (i = 0; i < totalUnits; i++)
             {
                 float distToTargetPoint = Vector3.Distance(unit.transform.position, targetPointsInLine[i]);
-                print("compare: unitpos = " + unit.transform.position + ", target = " + targetPointsInLine[i]);
-                print("compare: distToTargetPoint " + distToTargetPoint + " | " + minDistance + " = minDistance" + " unit: " + unit.name);
+                //print("compare: unitpos = " + unit.transform.position + ", target = " + targetPointsInLine[i]);
+                //print("compare: distToTargetPoint " + distToTargetPoint + " | " + minDistance + " = minDistance" + " unit: " + unit.name);
                 if (distToTargetPoint < minDistance)
                 {
                     minDistance = distToTargetPoint;
