@@ -27,6 +27,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     public int attackRange = 40;
 
     private Vector3 currentPos, forwardDir, moveTargetDir, attackTargetDir, startVelocity, slowedVelocity;
+    private Vector3 oldPos = Vector3.zero;
     private Quaternion newRotation;
     private float forwardTargetAngle, forwardTargetAngleStart, velocityTargetAngle;
     private float targetDistance;
@@ -45,6 +46,8 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     public Vector3 moveDestination, intermediateDestination;
     public bool stopped = true, searching = false, fixTarget = false;
     public AudioClip launchTorpedoSound;
+
+    private int count = 0;
 
     public int team = 1;
     public int Team
@@ -96,7 +99,11 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     void Update()
     {
         timer += Time.deltaTime;
-
+        if (gameObject.name == "ST_Terminator")
+        {
+            print("timer = " + timer);
+            print("count = " + count++);
+        }
         startVelocity = subRb.velocity;
 
         // —имул€ци€ сопротивлени€ среды
@@ -276,11 +283,19 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             trail.Play();
 
         // “€га вперЄд
-        subRb.AddForce(power * thrust * Mathf.Clamp01(targetDistance / borderDistance) * forwardDir);
+        //subRb.AddForce(power * thrust * Mathf.Clamp01(targetDistance / borderDistance) * forwardDir);
+        subRb.AddForce(power * thrust * forwardDir);
         //print("Applying power " + power * thrust * Mathf.Clamp01(targetDistance * thrustDistCoeff) * Mathf.Clamp(mode, -1, 1));
 
         // ѕоворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
         transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, turnRadius * Mathf.Sqrt(speed) * Time.deltaTime);
+        print("speed = " + speed + ", sqrt(speed) = " + Mathf.Sqrt(speed));
+        var anglestep = turnRadius * Mathf.Sqrt(speed) * Time.deltaTime;
+        var distance = (currentPos - oldPos).magnitude;
+        print("step angle = " + anglestep + ", targetDistance = " + targetDistance);
+        print("travelled = " + distance + ", angle/travelled = " + anglestep / distance);
+
+        oldPos = currentPos;
         Debug.DrawRay(currentPos, (moveTargetDir - slowedVelocity) * 100, Color.red);
     }
 
@@ -415,8 +430,8 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
 
         if (forwardTargetAngleStart < 90)
         {
-            print("targetDistance = " + targetDistance + ", angle limit = " + 90 / turnRadius * targetDistance + ", angle = " + forwardTargetAngleStart);
-            if (forwardTargetAngleStart < 90 / turnRadius * targetDistance) // ¬перЄд
+            //print("targetDistance = " + targetDistance + ", angle limit = " + 90 / turnRadius * targetDistance + ", angle = " + forwardTargetAngleStart);
+            if (forwardTargetAngleStart < 9000 / turnRadius * targetDistance) // ¬перЄд
             {
                 behaviour = BehaviourState.TurnToDirection;
                 targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
