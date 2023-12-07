@@ -99,11 +99,11 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     void Update()
     {
         timer += Time.deltaTime;
-        if (gameObject.name == "ST_Terminator")
-        {
-            print("timer = " + timer);
-            print("count = " + count++);
-        }
+        //if (gameObject.name == "ST_Terminator")
+        //{
+        //    print("timer = " + timer);
+        //    print("count = " + count++);
+        //}
         startVelocity = subRb.velocity;
 
         // Симуляция сопротивления среды
@@ -149,13 +149,16 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
 
             // По необходимости измененить режим движения 
             forwardTargetAngle = Vector3.Angle(forwardDir, moveTargetDir);
+            var speedTargetAngle = Vector3.Angle(slowedVelocity, moveTargetDir);
             switch (behaviour)
             {
                 case BehaviourState.TurnToDirection:
-                    if (forwardTargetAngle < 90 / turnRadius * targetDistance)
+                    //if (forwardTargetAngle < 90 / turnRadius * targetDistance)
+                    if (speedTargetAngle < forwardTargetAngleStart / (2 + turnRadius / targetDistance))
                     {
                         behaviour = BehaviourState.FullThrottle;
                         print(behaviour);
+                        print("Angle turn limit = " + forwardTargetAngleStart / (2 + turnRadius / targetDistance));
                     }
                     break;
                 case BehaviourState.ReverseTurn:
@@ -287,13 +290,17 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         subRb.AddForce(power * thrust * forwardDir);
         //print("Applying power " + power * thrust * Mathf.Clamp01(targetDistance * thrustDistCoeff) * Mathf.Clamp(mode, -1, 1));
 
-        // Поворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, turnRadius * Mathf.Sqrt(speed) * Time.deltaTime);
-        print("speed = " + speed + ", sqrt(speed) = " + Mathf.Sqrt(speed));
+        var distanceStep = (currentPos - oldPos).magnitude;
+        //var anglestep = turnRadius * Mathf.Sqrt(speed) * Time.deltaTime;
         var anglestep = turnRadius * Mathf.Sqrt(speed) * Time.deltaTime;
-        var distance = (currentPos - oldPos).magnitude;
-        print("step angle = " + anglestep + ", targetDistance = " + targetDistance);
-        print("travelled = " + distance + ", angle/travelled = " + anglestep / distance);
+
+        // Поворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, anglestep);
+        //transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, turnRadius * speed * Time.deltaTime);
+
+        //print("speed = " + speed + ", sqrt(speed) = " + Mathf.Sqrt(speed));
+        //print("step angle = " + anglestep + ", targetDistance = " + targetDistance);
+        //print("travelled = " + distanceStep + ", angle/travelled = " + anglestep / distanceStep);
 
         oldPos = currentPos;
         Debug.DrawRay(currentPos, (moveTargetDir - slowedVelocity) * 100, Color.red);
@@ -409,6 +416,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
 
     public void SetMoveDestination(Vector3 moveDestination, bool withTartget, float recievedTargetRotationY = 0, bool moveInGroup = true)
     {
+        print("Entered SetMoveDestination, moveDestination = " + moveDestination);
         this.moveDestination = moveDestination;
         if (steadyYawSpeed == 0) 
         {
@@ -425,12 +433,13 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         forwardDir = transform.forward;
         currentPos = transform.position;
         moveTargetDir = moveDestination - currentPos;
+        print("moveDestination = " + moveDestination + ", currentPos = " + currentPos);
         targetDistance = moveTargetDir.magnitude;
         forwardTargetAngleStart = Vector3.Angle(forwardDir, moveTargetDir);
 
         if (forwardTargetAngleStart < 90)
         {
-            //print("targetDistance = " + targetDistance + ", angle limit = " + 90 / turnRadius * targetDistance + ", angle = " + forwardTargetAngleStart);
+            print("angle limit = " + 90 / turnRadius * targetDistance + ", angle = " + forwardTargetAngleStart);
             if (forwardTargetAngleStart < 9000 / turnRadius * targetDistance) // Вперёд
             {
                 behaviour = BehaviourState.TurnToDirection;
@@ -457,13 +466,15 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             else 
                 targetRotationY = transform.eulerAngles.y;
         }
-        Debug.Log(behaviour + ", moveDestination " + moveDestination + ", targetDistance " + targetDistance + ", forwardTargetAngleStart " + forwardTargetAngleStart);
+        //Debug.Log(behaviour + ", moveDestination " + moveDestination + ", targetDistance " + targetDistance + ", forwardTargetAngleStart " + forwardTargetAngleStart);
+        Debug.Log("targetDistance " + targetDistance + ", forwardTargetAngleStart " + forwardTargetAngleStart);
 
         //oldmoveDestination = moveDestination;
     }
 
     public void SetAttackTarget(GameObject target, bool fixTarget)
     {
+        print("Entered SetAttackTarget, target = " + target.name);
         this.target = target;
         if (fixTarget == true)
             this.fixTarget = fixTarget;
@@ -471,7 +482,6 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         //behaviour = BehaviourState.Attacking;
         if(Vector3.Distance(transform.position, target.transform.position) > attackRange)
             SetMoveDestination(target.transform.position, true);
-        //Debug.Log("Set attack target, position = " + targetPosition);
     }
 
     private void OnCollisionEnter(Collision collision)

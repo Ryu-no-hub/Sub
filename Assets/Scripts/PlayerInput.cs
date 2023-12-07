@@ -11,24 +11,23 @@ public class PlayerInput : MonoBehaviour
 
     //private List<MoveSubStandart> subScript = new List<MoveSubStandart>();
 
-    public GameObject subPrefab;
-    public GameObject subPrefab2;
+    public GameObject subPrefab, subPrefab2, arrowPrefabBlue, arrowPrefabRed;
+    private GameObject attackTarget, arrowDrag, arrowPrefab;
+
     private int N = 0;
-    private float timer=0;
-    private float targetRotationY = 0, arrowSize;
+    private float timer=0, targetRotationY = 0, arrowSizeBlue, arrowSizeRed;
     private bool arrowSpawned=false;
 
     public RTSSelection selection;
-    public GameObject arrowPrefab;
-    private GameObject arrowInstance;
-    private Vector3 initialMovePoint, currentMovePoint, initialMousePos;
+    private Vector3 initialMovePoint = Vector3.zero, currentMovePoint, initialMousePos;
     
     void Start()
     {
         //print("???"+subPrefab);
         //print(transform.position);
         //print(gameObject.name);
-        arrowSize = arrowPrefab.GetComponent<SpriteRenderer>().bounds.size.x;
+        arrowSizeBlue = arrowPrefabBlue.GetComponent<SpriteRenderer>().bounds.size.x;
+        arrowSizeRed = arrowPrefabRed.GetComponent<SpriteRenderer>().bounds.size.x;
     }
 
     // Update is called once per frame
@@ -91,9 +90,15 @@ public class PlayerInput : MonoBehaviour
                         return;
                     // Если объект из своей команды, двигаться на его место
                     if (unitScript.team == selectedUnits[0].GetComponent<MoveSubStandart>().team)
-                        initialMovePoint = raycastHit.point; //MoveOrder(raycastHit);
+                    {
+                        initialMovePoint = raycastHit.point;
+                        arrowPrefab = arrowPrefabBlue;
+                    }
                     else
-                        AttackSingleOrder(target);
+                    {
+                        attackTarget = target;
+                        arrowPrefab = arrowPrefabRed;
+                    }
                 }
             }            
         }
@@ -101,34 +106,39 @@ public class PlayerInput : MonoBehaviour
         if (Input.GetMouseButton(1))
         {
             timer += Time.deltaTime;
-            if (initialMovePoint == Vector3.zero) return;
+            if (initialMovePoint == Vector3.zero && attackTarget == null) return;
             //print(arrowSpawned + ", timer = " + timer + ", length = " + (currentMovePoint.magnitude - initialMovePoint.magnitude));
             Vector3 mousePos = Input.mousePosition, spawnPos;
             float stretch = (initialMousePos - mousePos).magnitude, angle, scale;
             int stretchStart = 100;
 
+            if (attackTarget != null) 
+            {
+                initialMovePoint = attackTarget.transform.position;
+            }
             angle = -Vector3.SignedAngle(Vector3.up, initialMousePos - mousePos, Vector3.forward);
-            //print("Signed Angle = " + -angle);
+            print("Signed Angle = " + -angle);
+
             if (stretch > stretchStart)
             {
-                spawnPos = initialMovePoint + 5 * Vector3.up + (Quaternion.AngleAxis(angle, Vector3.up) * Vector3.right * arrowSize * stretch / stretchStart / 2);
+                spawnPos = initialMovePoint + 5 * Vector3.up + (Quaternion.AngleAxis(angle, Vector3.up) * Vector3.right * arrowSizeBlue * stretch / stretchStart / 2);
                 if (!arrowSpawned)
                 {
-                    arrowInstance = Instantiate(arrowPrefab, spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
+                    arrowDrag = Instantiate(arrowPrefab, spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
                     arrowSpawned = true;
                 }
                 else
                 {
-                    scale = stretch / stretchStart;
-                    arrowInstance.transform.SetPositionAndRotation(spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
-                    arrowInstance.transform.localScale = Vector3.one * scale;
-                    //print("position = " + arrowInstance.transform.position + ", angle = " + angle + ", scale = " + scale + ", stretch = " + stretch);
+                    scale = - stretch / stretchStart;
+                    arrowDrag.transform.SetPositionAndRotation(spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
+                    arrowDrag.transform.localScale = Vector3.one * scale;
+                    print("position = " + arrowDrag.transform.position + ", angle = " + angle + ", scale = " + scale + ", stretch = " + stretch);
                 }
             }
             else if (arrowSpawned)
             {
-                spawnPos = initialMovePoint + 5 * Vector3.up + (Quaternion.AngleAxis(angle, Vector3.up) * Vector3.right * arrowSize / 2);
-                arrowInstance.transform.SetPositionAndRotation(spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
+                spawnPos = initialMovePoint + 5 * Vector3.up + (Quaternion.AngleAxis(angle, Vector3.up) * Vector3.right * arrowSizeBlue / 2);
+                arrowDrag.transform.SetPositionAndRotation(spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
             }
         }
 
@@ -137,11 +147,17 @@ public class PlayerInput : MonoBehaviour
             timer = 0;
             if (arrowSpawned)
             {
-                targetRotationY = arrowInstance.transform.eulerAngles.y + 90;
-                Destroy(arrowInstance);
+                targetRotationY = arrowDrag.transform.eulerAngles.y + 90;
+                Destroy(arrowDrag);
                 arrowSpawned = false;
             }
-            MoveOrder(initialMovePoint);
+
+            if (attackTarget != null)
+                AttackSingleOrder(attackTarget);
+            else
+                MoveOrder(initialMovePoint);
+            attackTarget = null;
+
             print("initialMovePoint = " + initialMovePoint);
             initialMovePoint = Vector3.zero;
             selectedUnits.Clear();
