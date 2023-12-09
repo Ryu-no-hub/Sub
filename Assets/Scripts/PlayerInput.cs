@@ -80,7 +80,10 @@ public class PlayerInput : MonoBehaviour
                 print("Order raycast point  = " + raycastHit.point + ", object hit = " + raycastHit.collider.gameObject.name + ", layer = " + raycastHit.collider.gameObject.layer);
                 initialMousePos = Input.mousePosition;
                 if (raycastHit.collider.gameObject.layer == 3) // Ground
+                {
                     initialMovePoint = raycastHit.point; //MoveOrder(raycastHit);
+                    arrowPrefab = arrowPrefabBlue;
+                }
                 else // Not Ground, therefore Unit
                 {
                     GameObject target = raycastHit.collider.gameObject;
@@ -110,14 +113,15 @@ public class PlayerInput : MonoBehaviour
             //print(arrowSpawned + ", timer = " + timer + ", length = " + (currentMovePoint.magnitude - initialMovePoint.magnitude));
             Vector3 mousePos = Input.mousePosition, spawnPos;
             float stretch = (initialMousePos - mousePos).magnitude, angle, scale;
-            int stretchStart = 100;
+            int stretchStart = 100, inOut = 1;
 
             if (attackTarget != null) 
             {
                 initialMovePoint = attackTarget.transform.position;
+                inOut = -1;
             }
             angle = -Vector3.SignedAngle(Vector3.up, initialMousePos - mousePos, Vector3.forward);
-            print("Signed Angle = " + -angle);
+            //print("Signed Angle = " + -angle + ", attackTarget = " + attackTarget);
 
             if (stretch > stretchStart)
             {
@@ -129,10 +133,10 @@ public class PlayerInput : MonoBehaviour
                 }
                 else
                 {
-                    scale = - stretch / stretchStart;
+                    scale = inOut * stretch / stretchStart;
                     arrowDrag.transform.SetPositionAndRotation(spawnPos, Quaternion.AngleAxis(angle, Vector3.up));
                     arrowDrag.transform.localScale = Vector3.one * scale;
-                    print("position = " + arrowDrag.transform.position + ", angle = " + angle + ", scale = " + scale + ", stretch = " + stretch);
+                    //print("position = " + arrowDrag.transform.position + ", angle = " + angle + ", scale = " + scale + ", stretch = " + stretch);
                 }
             }
             else if (arrowSpawned)
@@ -168,10 +172,10 @@ public class PlayerInput : MonoBehaviour
             SpawnSub1();
         }
 
-        if (Input.GetKeyDown(KeyCode.W))
-        {
-            SpawnSub2();
-        }
+        //if (Input.GetKeyDown(KeyCode.W))
+        //{
+        //    SpawnSub2();
+        //}
 
         if (Input.GetKeyDown(KeyCode.Delete))
             foreach (Transform child in transform)
@@ -256,7 +260,10 @@ public class PlayerInput : MonoBehaviour
         if (targetRotationY == 0)
             targetDirection = avgDirection.normalized;
         else
-            targetDirection = (currentMovePoint - initialMovePoint).normalized;
+        {
+            targetDirection = Quaternion.Euler(new Vector3(0, targetRotationY, 0)) * Vector3.forward;
+            print("targetDirection = " + targetDirection);
+        }
             //targetDirection = new Vector3(0, targetRotationY, 0);
         //Debug.Log("targetDirection = " + targetDirection);
         lineStart = targetPosition - (lineLength / 2) * Vector3.Cross(targetDirection, Vector3.up);
@@ -277,8 +284,8 @@ public class PlayerInput : MonoBehaviour
             for (i = 0; i < totalUnits; i++)
             {
                 float distToTargetPoint = Vector3.Distance(unit.transform.position, targetPointsInLine[i]);
-                //print("compare: unitpos = " + unit.transform.position + ", target = " + targetPointsInLine[i]);
-                //print("compare: distToTargetPoint " + distToTargetPoint + " | " + minDistance + " = minDistance" + " unit: " + unit.name);
+                //print("Finding best point in line: unitpos = " + unit.transform.position + ", point = " + targetPointsInLine[i]);
+                //print("Finding best point in line: distance = " + distToTargetPoint + " | " + minDistance + " = minDistance" + " unit: " + unit.name);
                 if (distToTargetPoint < minDistance)
                 {
                     minDistance = distToTargetPoint;
@@ -291,11 +298,6 @@ public class PlayerInput : MonoBehaviour
             print("targetRotationY = " + targetRotationY);
             unitScriptStandart.SetMoveDestination(targetPointsInLine[minDistanceIndex], false, targetRotationY, moveInGroup: isGroup);
             
-            //unit.GetComponent<MoveSubStandart>().moveDestination = targetPointsInLine[minDistanceIndex];
-            //unit.GetComponent<MoveSubStandart>().target = null;
-            //unit.GetComponent<MoveSubStandart>().stopped = false;
-            //unit.GetComponent<MoveSubStandart>().moveMode = MoveSubStandart.MoveMode.TurnToDirection;
-
             print("Target position = " + targetPointsInLine[minDistanceIndex] + " for " + unit.name);
             //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().moveDestinationition + " for " + unit.name);
             Debug.DrawLine(unit.transform.position, targetPointsInLine[minDistanceIndex], Color.black, 10.0f);
@@ -315,19 +317,6 @@ public class PlayerInput : MonoBehaviour
             }
             unitScript.SetAttackTarget(target, true);
             print(target.name + " set as Fixed target for " + child.name);
-            //print(child.GetComponent<MoveSubStandart>().target.name);
-
-            //int unitAttackRange = child.GetComponent<MoveSubStandart>().attackRange;
-
-            //if (Vector3.Distance(child.transform.position, target.transform.position) > unitAttackRange)
-            //{
-            //    Vector3 targetDir = target.transform.position - child.transform.position;
-            //    child.GetComponent<MoveSubStandart>().moveDestination = target.transform.position - (unitAttackRange - 2) * targetDir.normalized ;
-            //}
-            //else
-            //{
-            //    child.GetComponent<MoveSubStandart>().Stop();
-            //}
         }
     }
 

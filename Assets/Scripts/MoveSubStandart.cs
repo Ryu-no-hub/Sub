@@ -19,11 +19,11 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     private float speed;
     public float myDrag = 1f;
     private float thrust;
-    private int rotationSpeedCoeff = 1500, steadyYawSpeed, steadyPitchSpeed=10, borderDistance = 10, turnRadius = 20;
+    private int rotationSpeedCoeff = 1500, steadyYawSpeed, steadyPitchSpeed=10, borderDistance = 10, turnRadius = 10;
 
     // Attack parameters
     private float reloadTime = 3f;
-    private int maxAmmo = 20, ammo = 20;
+    private int maxAmmo = 20, ammo = 20, angleStepCount = 0;
     public int attackRange = 40;
 
     private Vector3 currentPos, forwardDir, moveTargetDir, attackTargetDir, startVelocity, slowedVelocity;
@@ -43,9 +43,9 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
 
     public enum BehaviourState { FullThrottle, TurnToDirection, Reverse, ReverseTurn, StillApproach, Idle, Attacking};
     public GameObject torpPrefab, target = null;
-    public Vector3 moveDestination, intermediateDestination;
+    public Vector3 moveDestination, finalDestination;
     public bool stopped = true, searching = false, fixTarget = false;
-    public AudioClip launchTorpedoSound;
+    public AudioClip launchTorpedoSound, launchFastTorpedoSound;
 
     private int count = 0;
 
@@ -80,7 +80,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         print("trail = " + trail);
         forwardDir = transform.forward;
         currentPos = transform.position;
-        moveDestination = intermediateDestination = Vector3.zero;
+        moveDestination = finalDestination = Vector3.zero;
         moveTargetDir = moveDestination - currentPos;
         forwardTargetAngle = Vector3.Angle(forwardDir, moveTargetDir);
         targetDistance = moveTargetDir.magnitude;
@@ -90,8 +90,8 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         behaviour = BehaviourState.Idle;
         stopped = false;
         unitName = gameObject.name;
-        if (unitName.IndexOf(' ') != -1) unitName = unitName.Substring(0, unitName.IndexOf(' '));
-        steadyYawSpeed = unitName == "ST_Terminator" ? 10 : 0;
+        //if (unitName.IndexOf(' ') != -1) unitName = unitName.Substring(0, unitName.IndexOf(' '));
+        steadyYawSpeed = unitName == "ST_Terminator 0" ? 0 : 10;
         //print(unitName + ", steadyYawSpeed = " + steadyYawSpeed);
     }
 
@@ -111,9 +111,21 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         {
             //slowedVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
             //slowedVelocity = startVelocity * (1 - myDrag * Mathf.Clamp(startVelocity.magnitude, 1, 1000) * Time.deltaTime);
+            forwardDir = transform.forward;
+            float alignSin = Mathf.Sin(Vector3.Angle(forwardDir, startVelocity) * Mathf.PI / 180);
+            print("alignSin = " + alignSin + ", angle = " + Vector3.Angle(forwardDir, startVelocity));
 
-            slowedVelocity = startVelocity * (1f - myDrag * Time.deltaTime);
+            slowedVelocity = startVelocity * (1f - myDrag * (1 + alignSin) * Time.deltaTime);
+            //slowedVelocity = Quaternion.RotateTowards(Quaternion.LookRotation(slowedVelocity, transform.up), transform.rotation, alignSin * Time.deltaTime) * slowedVelocity;
+            slowedVelocity = Vector3.RotateTowards(slowedVelocity, transform.forward * slowedVelocity.magnitude, alignSin * Time.deltaTime, 0f);
             subRb.velocity = slowedVelocity;
+
+            print("slowedVelocity before turn = " + slowedVelocity);
+            //subRb.velocity = slowedVelocity;
+            Debug.DrawRay(transform.position, slowedVelocity * 10, Color.white);
+            Debug.DrawRay(transform.position, slowedVelocity * 10, Color.yellow);
+            print("slowedVelocity after turn = " + slowedVelocity);// + ", rotation = " + Vector3.Angle(slowedVelocity, forwardDir));
+            print("rotation = " + Vector3.Angle(slowedVelocity, forwardDir) + ", turn step = " + alignSin * Time.deltaTime);
             speed = slowedVelocity.magnitude;
 
             //print(transform.name + " speed = " + speed);
@@ -124,10 +136,10 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             dragDecel = (startVelocity.magnitude - slowedVelocity.magnitude) / Time.deltaTime;
             velocityTargetAngle = Vector3.Angle(slowedVelocity, moveTargetDir);
 
-            //print("startVelocity = " + startVelocity.magnitude + ", slowedVelocity = " + slowedVelocity.magnitude);
+            print("startVelocity = " + startVelocity.magnitude + ", slowedVelocity = " + slowedVelocity.magnitude);
             //print("stopTime = " + stopTime + ", targetDistance = " + targetDistance  + ", speed = " + speed );
             //print("real stop time = " + speed / dragDecel * myDrag + ", velocityTargetAngle = " + velocityTargetAngle);
-            //print("dragDecel = " + dragDecel);
+            print("dragDecel = " + dragDecel);
             //print("stopped = " + stopped + ", moveDestination = " + moveDestination);
         }
         else if(!stopped && moveDestination == Vector3.zero)
@@ -158,7 +170,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                     {
                         behaviour = BehaviourState.FullThrottle;
                         print(behaviour);
-                        print("Angle turn limit = " + forwardTargetAngleStart / (2 + turnRadius / targetDistance));
+                        print("Angle turn limit = " + forwardTargetAngleStart / (2.4f + turnRadius / targetDistance));
                     }
                     break;
                 case BehaviourState.ReverseTurn:
@@ -172,32 +184,38 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                     break;
             }
 
-            
-
-            if (target == null)
+            if (finalDestination == Vector3.zero && target == null)
             {
                 if (
                 targetDistance < 2 // погрешность достижения точки, либо она слишком близко
                 || ((stopTime < speed / dragDecel * myDrag) && (velocityTargetAngle < 5 || velocityTargetAngle > 175)) // направление примерно на точку, чтобы не промахиваться по времени остановки
                     )
                 {
-                    Stop();
-                    print(behaviour);
+                        Stop();
+                        print("111111111111111");
                 }
             }
-            else
+            else if (target != null)
             {
-                if(targetDistance < attackRange)
+                if (targetDistance < attackRange)
                 {
                     Stop();
-                    //behaviour = BehaviourState.StillApproach;
-                    print(behaviour);
-                }
-                else
-                {
-
+                    //print(behaviour);
+                    print("2222222222222222");
                 }
             }
+            else if(targetDistance < 2 || (stopTime < speed / dragDecel * myDrag) && (velocityTargetAngle < 5 || velocityTargetAngle > 175))
+            {
+                //SetMoveDestination(finalDestination, false);
+                Stop();
+                aligned = true;
+                //targetRotationY = transform.eulerAngles.y;
+                StartCoroutine(CSetMoveDestination(stopTime, finalDestination, false, targetRotationY));
+                finalDestination = Vector3.zero;
+                print(behaviour);
+                print("333333333333333");
+            }
+
         }
         else if (target == null && !aligned) // Выравнивание без цели
         {
@@ -231,12 +249,17 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                     //stopped = false;
                     lastShotTime = timer;
                     print("SHOOT! Time = " + timer);
-                    submarineSource.PlayOneShot(launchTorpedoSound, 0.1f);
                     //Invoke("Shoot", 0.1f);
-                    if(unitName== "ST_Terminator")
+                    if (steadyYawSpeed == 0)
+                    {
+                        submarineSource.PlayOneShot(launchTorpedoSound, 0.1f);
                         StartCoroutine(Shoot(target, 0.1f));
+                    }
                     else
+                    {
+                        submarineSource.PlayOneShot(launchFastTorpedoSound, 0.1f);
                         StartCoroutine(Shoot(target, 0.25f));
+                    }
                 }
                 //else if(team==1) print("timer - lastShotTime = " + (timer - lastShotTime));
             }
@@ -267,6 +290,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                 break;
             case BehaviourState.FullThrottle:
                 thrust = 1;
+                angleStepCount = 0;
                 break;
             case BehaviourState.ReverseTurn: // Движение задом, разворачиваясь к точке передом
                 thrust = -0.5f;
@@ -299,11 +323,11 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         //transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, turnRadius * speed * Time.deltaTime);
 
         //print("speed = " + speed + ", sqrt(speed) = " + Mathf.Sqrt(speed));
-        //print("step angle = " + anglestep + ", targetDistance = " + targetDistance);
+        print("step=" + ++angleStepCount + ", angle=" + anglestep + ", targetDistance = " + targetDistance);
         //print("travelled = " + distanceStep + ", angle/travelled = " + anglestep / distanceStep);
 
         oldPos = currentPos;
-        Debug.DrawRay(currentPos, (moveTargetDir - slowedVelocity) * 100, Color.red);
+        Debug.DrawRay(currentPos, (moveTargetDir - slowedVelocity), Color.red);
     }
 
     private bool TurnToAnglesXY(float targetAngleX, float targetAngleY, int threshold, bool hardAlignment)
@@ -414,14 +438,52 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
 
     }
 
-    public void SetMoveDestination(Vector3 moveDestination, bool withTartget, float recievedTargetRotationY = 0, bool moveInGroup = true)
+    private IEnumerator CSetMoveDestination(float time, Vector3 moveDestination, bool withTartget, float recievedTargetRotationY = 0, bool moveInGroup = true)
+    {
+        yield return new WaitForSeconds(time);
+        SetMoveDestination(moveDestination, withTartget, recievedTargetRotationY, moveInGroup, setPrimary: false);
+    }
+
+    public void SetMoveDestination(Vector3 moveDestination, bool withTartget, float recievedTargetRotationY = 0, bool moveInGroup = true, bool setPrimary = true)
     {
         print("Entered SetMoveDestination, moveDestination = " + moveDestination);
-        this.moveDestination = moveDestination;
-        if (steadyYawSpeed == 0) 
+        //if (steadyYawSpeed == 0) 
+        if (recievedTargetRotationY != 0 && setPrimary)
         {
-            //intermediateDestination = ;
+            Vector3 vecRad = (moveDestination - currentPos).normalized * turnRadius;
+            Vector3 turnCircleCenter, targetRotationVec = Quaternion.Euler(new Vector3(0, recievedTargetRotationY, 0)) * Vector3.forward;
+            short sign = (short)Mathf.Sign(Vector3.SignedAngle(moveDestination - currentPos, Quaternion.Euler(new Vector3(0, recievedTargetRotationY, 0)) * Vector3.forward, Vector3.up));
+            print("sign = " + sign);
+            //turnCircleCenter = moveDestination - Quaternion.AngleAxis(90 - Vector3.SignedAngle(moveDestination - currentPos, Quaternion.Euler(new Vector3(0, recievedTargetRotationY, 0)) * Vector3.forward, Vector3.up), transform.up) * vecRad;
+            //if (Vector3.SignedAngle(moveDestination - currentPos, Quaternion.Euler(new Vector3(0, recievedTargetRotationY, 0)) * Vector3.forward, Vector3.up) < 0)
+            //    turnCircleCenter = moveDestination - Quaternion.AngleAxis(90, transform.up) * targetRotationVec * turnRadius;
+            //else
+            //    turnCircleCenter = moveDestination + Quaternion.AngleAxis(90, transform.up) * targetRotationVec * turnRadius;
+
+            turnCircleCenter = moveDestination + Quaternion.AngleAxis(90, transform.up) * targetRotationVec * turnRadius * sign;
+            
+            Vector3 radiusPoint = turnCircleCenter + vecRad, radiusPointFinal = radiusPoint;
+            print("Angle direction to rotation = " + Vector3.SignedAngle(moveDestination - currentPos, Quaternion.Euler(new Vector3(0, recievedTargetRotationY, 0)) * Vector3.forward, Vector3.up));
+            for(int y=0; y< 180; y++)
+            {
+                vecRad = Quaternion.AngleAxis(2, transform.up) * vecRad * sign;
+                radiusPoint = turnCircleCenter + vecRad;
+                if (Mathf.Abs(Vector3.Angle(turnCircleCenter - radiusPoint, radiusPoint - currentPos) - 90) < 5)
+                {
+                    Debug.DrawLine(turnCircleCenter, radiusPoint, Color.green, 10);
+                    radiusPointFinal = radiusPoint;
+                    print("Angle radial scan orthogonal = " + Vector3.Angle(targetRotationVec, turnCircleCenter - radiusPoint));
+                }
+                else Debug.DrawLine(turnCircleCenter, radiusPoint, Color.yellow, 10);
+                //print("ANGLE = " + Mathf.Abs(Vector3.Angle(turnCircleCenter - radiusPoint, radiusPoint - currentPos) - 90) + ", RADIUS = " + vecRad.magnitude);
+            }
+            this.moveDestination = radiusPointFinal;
+            finalDestination = moveDestination;
+
+
         }
+        else this.moveDestination = moveDestination;
+
 
         if (!withTartget)
         {
@@ -440,7 +502,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         if (forwardTargetAngleStart < 90)
         {
             print("angle limit = " + 90 / turnRadius * targetDistance + ", angle = " + forwardTargetAngleStart);
-            if (forwardTargetAngleStart < 9000 / turnRadius * targetDistance) // Вперёд
+            if (forwardTargetAngleStart < 90 / turnRadius * targetDistance) // Вперёд
             {
                 behaviour = BehaviourState.TurnToDirection;
                 targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
