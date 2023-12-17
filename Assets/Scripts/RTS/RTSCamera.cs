@@ -56,27 +56,30 @@ public class RTSCamera : MonoBehaviour
 
         panMovement = Vector3.zero;
 
+        if(Input.GetKeyDown(KeyCode.M))
+            rotationActive = !rotationActive;
+
         if (!rotationActive && enableMovement)
         {
             if (mouseY >= ScreenHeight - ScreenEdgeBorderThickness)
             {
-                panMovement += panSpeed * Time.deltaTime * Vector3.left;
-                panMovement += (mouseX - ScreenWidth / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.forward;
+                panMovement += panSpeed * Time.deltaTime * Vector3.forward;
+                panMovement += (mouseX - ScreenWidth / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.right;
             }
             else if (mouseY <= ScreenEdgeBorderThickness)
             {
-                panMovement += panSpeed * Time.deltaTime * Vector3.right;
-                panMovement += (mouseX - ScreenWidth / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.forward;
+                panMovement -= panSpeed * Time.deltaTime * Vector3.forward;
+                panMovement += (mouseX - ScreenWidth / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.right;
             }
             else if (mouseX <= ScreenEdgeBorderThickness)
             {
-                panMovement -= panSpeed * Time.deltaTime * Vector3.forward;
-                panMovement += (mouseY - ScreenHeight / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.left;
+                panMovement += panSpeed * Time.deltaTime * Vector3.left;
+                panMovement += (mouseY - ScreenHeight / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.forward;
             }
             else if (mouseX >= ScreenWidth - ScreenEdgeBorderThickness)
             {
-                panMovement += panSpeed * Time.deltaTime * Vector3.forward;
-                panMovement += (mouseY - ScreenHeight / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.left;
+                panMovement += panSpeed * Time.deltaTime * Vector3.right;
+                panMovement += (mouseY - ScreenHeight / 2) / (ScreenWidth / 2) * panSpeed * Time.deltaTime * Vector3.forward;
             }
 
             transform.Translate(panMovement, Space.World);

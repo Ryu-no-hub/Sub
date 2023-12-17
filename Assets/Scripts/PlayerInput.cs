@@ -7,6 +7,7 @@ public class PlayerInput : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
     [SerializeField] private LayerMask layerMask;
+    private LayerMask layerMaskGround;
     private List<GameObject> selectedUnits = new List<GameObject>();
 
     //private List<MoveSubStandart> subScript = new List<MoveSubStandart>();
@@ -28,6 +29,7 @@ public class PlayerInput : MonoBehaviour
         //print(gameObject.name);
         arrowSizeBlue = arrowPrefabBlue.GetComponent<SpriteRenderer>().bounds.size.x;
         arrowSizeRed = arrowPrefabRed.GetComponent<SpriteRenderer>().bounds.size.x;
+        layerMaskGround = LayerMask.GetMask("Ground");
     }
 
     // Update is called once per frame
@@ -120,7 +122,7 @@ public class PlayerInput : MonoBehaviour
                 initialMovePoint = attackTarget.transform.position;
                 inOut = -1;
             }
-            angle = -Vector3.SignedAngle(Vector3.up, initialMousePos - mousePos, Vector3.forward);
+            angle = -Vector3.SignedAngle(Vector3.up, initialMousePos - mousePos, Vector3.forward) + 90;
             //print("Signed Angle = " + -angle + ", attackTarget = " + attackTarget);
 
             if (stretch > stretchStart)
@@ -151,7 +153,10 @@ public class PlayerInput : MonoBehaviour
             timer = 0;
             if (arrowSpawned)
             {
-                targetRotationY = arrowDrag.transform.eulerAngles.y + 90;
+                float angleY = arrowDrag.transform.eulerAngles.y;
+                print("gtargetRotationY old = " + angleY);
+                targetRotationY = angleY >= 270 ? angleY - 270 : angleY + 90;
+                print("gtargetRotationY new = " + targetRotationY);
                 Destroy(arrowDrag);
                 arrowSpawned = false;
             }
@@ -326,7 +331,7 @@ public class PlayerInput : MonoBehaviour
         foreach (Transform child in transform)
         {
             if (child.transform.Find("Selection Sprite").gameObject.activeSelf)
-                child.GetComponent<MoveSubStandart>().Stop();
+                child.GetComponent<MoveSubStandart>().Stop(true);
         }
 
 
