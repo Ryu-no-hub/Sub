@@ -204,6 +204,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                 {
                     Stop();
                     aligned = true;
+                    if (targetDistance < 2) stopTime = 0.1f;
                     StartCoroutine(CSetMoveDestination(stopTime, intermediateDestination, false, targetRotationY, predefinedState: BehaviourState.FullThrottle));
                     intermediateDestination = Vector3.zero;
                     print("First point reached, stoptime = " + stopTime);
@@ -218,7 +219,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                     )
                 {
                     Stop(true);
-                    print("Final stop");
+                    print("Final stop, targetDistance = " + targetDistance);
                 }
             }
             else if (target != null)
@@ -233,7 +234,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             {
                 Stop();
                 aligned = true;
-                //targetRotationY = transform.eulerAngles.y;
+                if (targetDistance < 2) stopTime = 0.1f;
                 StartCoroutine(CSetMoveDestination(stopTime, finalDestination, false, targetRotationY, predefinedState: BehaviourState.FullThrottle));
                 finalDestination = Vector3.zero;
                 print("Second point reached, stoptime = " + stopTime);
@@ -432,7 +433,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         subRb.angularVelocity = moveDestination = Vector3.zero;
         if (completeStop)
         {
-            Invoke("SearchReset", stopTime);
+            Invoke(nameof(SearchReset), stopTime);
             aligned = true;
         }
     }
@@ -532,228 +533,385 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             float lengthMain, lengthAdjacent;
             Vector3 pointTangentMyToDC, pointTangentDCToMy, pointFirstAdjacent, pointTangentAdjacentToDC, pointTangentDCToAdjacent;
             string logStrStart = "BUILD TRAJECTORY: ";
+            bool front = angleRelativeToDestination > -90 && angleRelativeToDestination < 90;
 
-            if (angleRelativeToDestination > -90 && angleRelativeToDestination < 90) // Передняя полуплоскость
+            #region old circles
+            //if (front) // Передняя полуплоскость
+            //{
+            //    print(logStrStart + "left half = " + leftHalf + ", FRONT");
+
+            //    // Касательная ко мне, чтобы определить сторону взгляда относительно неё
+            //    Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestination, currentPos, true, leftHalf)[0];
+
+            //    float angleMyDirectionToTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, moveDir, Vector3.up);
+            //    Debug.DrawLine(pointTangentDCToMe, currentPos, Color.white, showtime);
+
+            //    bool rightTurn;
+            //    if (angleMyDirectionToTangent > 0) // Повёрнут направо от касательной. Выбрать правый и левый задний круги. 
+            //    {
+            //        rightTurn = true;
+            //        circleCenterMe = circleCenterMeRight;
+            //        circleCenterMeOther = circleCenterMeLeft;
+            //    }
+            //    else
+            //    {
+            //        rightTurn = false;
+            //        circleCenterMe = circleCenterMeLeft;
+            //        circleCenterMeOther = circleCenterMeRight;
+            //    }
+            //    print(logStrStart + "rightTurn = " + rightTurn);
+            //    Debug.DrawRay(circleCenterMe, 30 * Vector3.up, Color.cyan, showtime);
+
+            //    // Определение к какой стороне моего дальнего круга строить касательную на которой будет лежать доп. круг
+            //    bool toLeftSide = false;
+            //    float angleCenterMyOtherToMyTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, circleCenterMeOther - currentPos, Vector3.up);
+            //    if (angleCenterMyOtherToMyTangent > 0)
+            //        toLeftSide = true;
+
+            //    // Касательная между circleCenterDestination и circleCenterMeOther для построения доп. круга
+            //    (Vector3 pointTangentMyOtherToDC, Vector3 pointTangentDCToMyOther) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestination, leftHalf == toLeftSide, toLeftSide));
+            //    Vector3 vecTangentDCMyOther = pointTangentMyOtherToDC - pointTangentDCToMyOther;
+            //    Debug.DrawRay(pointTangentMyOtherToDC, 30 * Vector3.up, Color.green, showtime);
+            //    Debug.DrawRay(pointTangentDCToMyOther, 30 * Vector3.up, Color.green, showtime);
+
+            //    // Круг дополнительный к другому
+            //    Vector3 circleMyOtherAdjacent = circleCenterMeOther - 2 * turnRadius * vecTangentDCMyOther.normalized;
+            //    DrawCircle(circleMyOtherAdjacent, Color.yellow, showtime);
+
+            //    // Точка маршрута через доп. круг
+            //    pointFirstAdjacent = circleCenterMeOther - vecTangentDCMyOther.normalized * turnRadius;
+            //    //Vector3 pointSecondAdjacent = pointTangentDCToMyOther;
+
+            //    Vector3 pointCircleMeToDest, pointCircleAdjacentToDest;
+            //    float angleCMTDToDestination, angleCATDToDestination;
+
+            //    if ((rightTurn && leftHalf) || (!rightTurn && !leftHalf))
+            //    {
+            //        // Построить к выбранному основному и доп. кругу касательную из точки назначения
+            //        pointCircleMeToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
+            //        pointCircleAdjacentToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
+
+            //        // Они выпирают в противоположную четверть?
+            //        angleCMTDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleMeToDest - moveDestination, Vector3.up);
+            //        if ((rightTurn && angleCMTDToDestination > 0) || (!rightTurn && angleCMTDToDestination < 0))
+            //            myMain_DCLeft = !rightTurn; // Да
+
+            //        angleCATDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleAdjacentToDest - moveDestination, Vector3.up);
+            //        if ((!rightTurn && angleCATDToDestination > 0) || (rightTurn && angleCATDToDestination < 0))
+            //            myAdjacent_DCLeft = rightTurn; // Да
+            //    }
+            //    print(logStrStart + "myMain_DCLeft = " + myMain_DCLeft);
+            //    print(logStrStart + "myAdjacent_DCLeft = " + myAdjacent_DCLeft);
+
+            //    Vector3 circleDestinationToMyMain = myMain_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
+            //    Vector3 circleDestinationToAdjacent = myAdjacent_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
+
+            //    Debug.DrawRay(circleDestinationToAdjacent, 30 * Vector3.up, Color.cyan, showtime);
+
+            //    bool leftside, inner_my, inner_adjacent;
+            //    leftside = rightTurn; // Наоборот в задней полуплоскости
+            //    inner_my = inner_adjacent = leftHalf == rightTurn;
+            //    if (!leftHalf && !rightTurn)
+            //    {
+            //            inner_my = !myMain_DCLeft;
+            //            inner_adjacent = !myAdjacent_DCLeft;
+            //    }
+            //    else if(leftHalf && rightTurn)
+            //    {
+            //            inner_my = myMain_DCLeft;
+            //            inner_adjacent = myAdjacent_DCLeft;
+            //    }
+
+
+            //    #region readable
+            //    //if (!leftHalf)
+            //    //{
+            //    //    if (rightTurn)
+            //    //        inner_my = inner_adjacent = false;
+            //    //    else
+            //    //    {
+            //    //        inner_my = !myMain_DCLeft;
+            //    //        inner_adjacent = !myAdjacent_DCLeft;
+            //    //    }
+            //    //}
+            //    //else
+            //    //{
+            //    //    if (rightTurn)
+            //    //    {
+            //    //        inner_my = myMain_DCLeft;
+            //    //        inner_adjacent = myAdjacent_DCLeft;
+            //    //    }
+            //    //    else
+            //    //        inner_my = inner_adjacent = false;
+            //    //}
+            //    #endregion readable
+
+            //    // Длина пути вперёд
+            //    (pointTangentMyToDC, pointTangentDCToMy) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleDestinationToMyMain, inner_my, leftside));
+
+            //    float angleDCtoMain = Vector3.Angle(moveDestination - circleDestinationToMyMain, pointTangentDCToMy - circleDestinationToMyMain);
+            //    float angleMainToDC = Vector3.Angle(currentPos - circleCenterMe, pointTangentMyToDC - circleCenterMe);
+
+            //    if (Vector3.Angle(targetRotationVec, pointTangentDCToMy - moveDestination) < 90)
+            //        angleDCtoMain = 360 - angleDCtoMain;
+            //    if (Vector3.Angle(moveDir, pointTangentMyToDC - currentPos) > 90)
+            //        angleMainToDC = 360 - angleMainToDC;
+
+            //    float arcDCToMain = angleDCtoMain * turnRadius * Mathf.PI / 180;
+            //    float arcMainToDC = angleMainToDC * turnRadius * Mathf.PI / 180;
+            //    float connectionToMain = (pointTangentMyToDC - pointTangentDCToMy).magnitude;
+
+            //    DrawArc(circleCenterMe, currentPos, pointTangentMyToDC, Color.black, showtime);
+            //    DrawArc(circleDestinationToMyMain, moveDestination, pointTangentDCToMy, Color.black, showtime);
+            //    Debug.DrawLine(pointTangentMyToDC, pointTangentDCToMy, Color.grey, showtime);
+
+            //    lengthMain = arcDCToMain + arcMainToDC + connectionToMain;
+
+
+            //    // Длина пути назад
+            //    (pointTangentAdjacentToDC, pointTangentDCToAdjacent) = Deconstruct(FindTangentPoints(false, circleMyOtherAdjacent, circleDestinationToAdjacent, inner_adjacent, leftside));
+
+            //    float angleMyOtherToAdjacent = Vector3.Angle(currentPos - circleCenterMeOther, pointFirstAdjacent - circleCenterMeOther);
+            //    float angleAdjacentToDC = 90;
+            //    float angleDCToAdjacent = Vector3.Angle(moveDestination - circleDestinationToAdjacent, pointTangentDCToAdjacent - circleDestinationToAdjacent);
+
+            //    if (Vector3.Angle(targetRotationVec, pointTangentDCToAdjacent - moveDestination) < 90)
+            //        angleDCToAdjacent = 360 - angleDCToAdjacent;
+            //    // Невозможно
+            //    //if (Vector3.Angle(Quaternion.AngleAxis(90, Vector3.up) * (pointTangentAdjacentToDC - pointTangentDCToAdjacent), pointTangentAdjacentToDC - circleCenterMeAdjacent) > 90)
+            //    //    angleAdjacentToDC = 360 - angleAdjacentToDC;
+
+            //    float arcMyOtherToAdjacent = angleMyOtherToAdjacent * turnRadius * Mathf.PI / 180;
+            //    float arcAdjacentToDC = angleAdjacentToDC * turnRadius * Mathf.PI / 180;
+            //    float arcDCToAdjacent = angleDCToAdjacent * turnRadius * Mathf.PI / 180;
+            //    float connectionToAdjacent = (pointTangentAdjacentToDC - pointTangentDCToAdjacent).magnitude;
+
+            //    DrawArc(circleCenterMeOther, currentPos, pointFirstAdjacent, Color.white, showtime);
+            //    print(logStrStart + "arcMyOtherToAdjacent = " + arcMyOtherToAdjacent);
+            //    DrawArc(circleMyOtherAdjacent, pointFirstAdjacent, pointTangentAdjacentToDC, Color.white, showtime);
+            //    print(logStrStart + "arcAdjacentToDC = " + arcAdjacentToDC);
+            //    DrawArc(circleDestinationToAdjacent, moveDestination, pointTangentDCToAdjacent, Color.white, showtime);
+            //    print(logStrStart + "arcDCToAdjacent = " + arcDCToAdjacent);
+            //    Debug.DrawLine(pointTangentAdjacentToDC, pointTangentDCToAdjacent, Color.green, showtime);
+
+            //    lengthAdjacent = arcMyOtherToAdjacent + arcAdjacentToDC + arcDCToAdjacent + connectionToAdjacent;
+
+            //}
+            //else // Задняя полуплоскость
+            //{
+            //    print(logStrStart + "left half = " + leftHalf + ", BACK");
+
+            //    // Касательная ко мне, чтобы определить сторону взгляда относительно неё
+            //    Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestination, currentPos, true, leftHalf)[0];
+
+            //    float angleMyDirectionToTangent = Vector3.SignedAngle(moveDir, pointTangentDCToMe - currentPos, Vector3.up);
+            //    Debug.DrawLine(pointTangentDCToMe, currentPos, Color.white, showtime);
+
+            //    bool rightTurn;
+            //    //print(logStrStart + "angleMyDirectionToTangent = " + angleMyDirectionToTangent);
+            //    if (angleMyDirectionToTangent > 0) // Повёрнут направо от касательной. Выбрать правый и левый задний круги. 
+            //    {
+            //        rightTurn = true;
+            //        circleCenterMe = circleCenterMeRight;
+            //        circleCenterMeOther = circleCenterMeLeft;
+            //    }
+            //    else
+            //    {
+            //        rightTurn = false;
+            //        circleCenterMe = circleCenterMeLeft;
+            //        circleCenterMeOther = circleCenterMeRight;
+            //    }
+            //    print(logStrStart + "rightTurn = " + rightTurn);
+            //    Debug.DrawRay(circleCenterMe, 30 * Vector3.up, Color.cyan, showtime);
+
+            //    // Определение к какой стороне моего дальнего круга строить касательную для построения доп. круга
+            //    bool toLeftSide = false;
+            //    float angleCenterMyOtherToMyTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, circleCenterMeOther - currentPos, Vector3.up);
+            //    if (angleCenterMyOtherToMyTangent > 0)
+            //        toLeftSide = true;
+
+            //    // Касательная между circleCenterDestination и circleCenterMeOther для построения доп. круга
+            //    (Vector3 pointTangentMyOtherToDC, Vector3 pointTangentDCToMyOther) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestination, leftHalf == toLeftSide, toLeftSide));
+            //    Vector3 vecTangentDCMyOther = pointTangentMyOtherToDC - pointTangentDCToMyOther;
+            //    Debug.DrawRay(pointTangentMyOtherToDC, 30 * Vector3.up, Color.green, showtime);
+            //    Debug.DrawRay(pointTangentDCToMyOther, 30 * Vector3.up, Color.green, showtime);
+
+            //    // Круг дополнительный к другому
+            //    Vector3 circleMyOtherAdjacent = circleCenterMeOther - 2 * turnRadius * vecTangentDCMyOther.normalized;
+            //    DrawCircle(circleMyOtherAdjacent, Color.yellow, showtime);
+            //    //Handles.
+
+
+            //    // Точка маршрута через доп. круг
+            //    pointFirstAdjacent = circleCenterMeOther - vecTangentDCMyOther.normalized * turnRadius;
+            //    //Vector3 pointSecondAdjacent = pointTangentDCToMyOther;
+
+            //    Vector3 pointCircleMeToDest, pointCircleAdjacentToDest;
+            //    float angleCMTDToDestination, angleCATDToDestination;
+
+            //    if ((!rightTurn && leftHalf) || (rightTurn && !leftHalf))
+            //    {
+            //        // Построить к выбранному основному и доп. кругу касательную из точки назначения
+            //        pointCircleMeToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
+            //        pointCircleAdjacentToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
+
+            //        // Они выпирает в противоположную четверть?
+            //        angleCMTDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleMeToDest - moveDestination, Vector3.up);
+            //        if ((!rightTurn && angleCMTDToDestination > 0) || (rightTurn && angleCMTDToDestination < 0))
+            //            myMain_DCLeft = rightTurn; // Да
+
+            //        angleCATDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleAdjacentToDest - moveDestination, Vector3.up);
+            //        if ((!rightTurn && angleCATDToDestination > 0) || (rightTurn && angleCATDToDestination < 0))
+            //            myAdjacent_DCLeft = rightTurn; // Да
+            //    }
+            //    print(logStrStart + "myMain_DCLeft = " + myMain_DCLeft);
+            //    print(logStrStart + "myAdjacent_DCLeft = " + myAdjacent_DCLeft);
+
+            //    Vector3 circleDestinationToMyMain = myMain_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
+            //    Vector3 circleDestinationToAdjacent = myAdjacent_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
+
+            //    Debug.DrawRay(circleDestinationToAdjacent, 30 * Vector3.up, Color.cyan, showtime);
+
+            //    bool leftside, inner_my, inner_adjacent;
+            //    leftside = rightTurn;
+            //    inner_my = inner_adjacent = leftHalf == rightTurn;
+            //    if (!leftHalf && rightTurn)
+            //    {
+            //        inner_my = myMain_DCLeft;
+            //        inner_adjacent = myAdjacent_DCLeft;
+            //    } 
+            //    else if (leftHalf && !rightTurn)
+            //    {
+            //        inner_my = !myMain_DCLeft;
+            //        inner_adjacent = !myAdjacent_DCLeft;
+            //    }
+
+            //    // Длина пути вперёд
+            //    (pointTangentMyToDC, pointTangentDCToMy) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleDestinationToMyMain, inner_my, leftside));
+
+            //    float angleDCtoMain = Vector3.Angle(moveDestination - circleDestinationToMyMain, pointTangentDCToMy - circleDestinationToMyMain);
+            //    float angleMainToDC = Vector3.Angle(currentPos - circleCenterMe, pointTangentMyToDC - circleCenterMe);
+
+            //    // Невозможно
+            //    //if (Vector3.Angle(targetRotationVec, pointTangentDCToMy - moveDestination) < 90)
+            //    //    angleDCtoMain = 360 - angleDCtoMain;
+            //    if (Vector3.Angle(moveDir, pointTangentMyToDC - currentPos) > 90)
+            //        angleMainToDC = 360 - angleMainToDC;
+
+            //    float arcDCToMain = angleDCtoMain * turnRadius * Mathf.PI / 180;
+            //    float arcMainToDC = angleMainToDC * turnRadius * Mathf.PI / 180;
+            //    float connectionToMain = (pointTangentMyToDC - pointTangentDCToMy).magnitude;
+
+            //    DrawArc(circleCenterMe, currentPos, pointTangentMyToDC, Color.black, showtime);
+            //    DrawArc(circleDestinationToMyMain, moveDestination, pointTangentDCToMy, Color.black, showtime);
+            //    Debug.DrawLine(pointTangentMyToDC, pointTangentDCToMy, Color.grey, showtime);
+
+            //    lengthMain = arcDCToMain + arcMainToDC + connectionToMain;
+
+
+            //    // Длина пути назад
+            //    (pointTangentAdjacentToDC, pointTangentDCToAdjacent) = Deconstruct(FindTangentPoints(false, circleMyOtherAdjacent, circleDestinationToAdjacent, inner_adjacent, leftside));
+
+            //    float angleMyOtherToAdjacent = Vector3.Angle(currentPos - circleCenterMeOther, pointFirstAdjacent - circleCenterMeOther);
+            //    float angleAdjacentToDC = 90;
+            //    float angleDCToAdjacent = Vector3.Angle(moveDestination - circleDestinationToAdjacent, pointTangentDCToAdjacent - circleDestinationToAdjacent);
+
+            //    if (Vector3.Angle(targetRotationVec, pointTangentDCToAdjacent - moveDestination) < 90)
+            //        angleDCToAdjacent = 360 - angleDCToAdjacent;
+            //    // Невозможно
+            //    //if (Vector3.Angle(Quaternion.AngleAxis(90, Vector3.up) * (pointTangentAdjacentToDC - pointTangentDCToAdjacent), pointTangentAdjacentToDC - circleCenterMeAdjacent) > 90)
+            //    //    angleAdjacentToDC = 360 - angleAdjacentToDC;
+
+            //    float arcMyOtherToAdjacent = angleMyOtherToAdjacent * turnRadius * Mathf.PI / 180;
+            //    float arcAdjacentToDC = angleAdjacentToDC * turnRadius * Mathf.PI / 180;
+            //    float arcDCToAdjacent = angleDCToAdjacent * turnRadius * Mathf.PI / 180;
+            //    float connectionToAdjacent = (pointTangentAdjacentToDC - pointTangentDCToAdjacent).magnitude;
+
+
+            //    // Компенсация низкой скорости поворота вконце
+            //    //pointFirstAdjacent += power / 2 * -interCircleConnectionRight.normalized;
+
+            //    DrawArc(circleCenterMeOther, currentPos, pointFirstAdjacent, Color.white, showtime);
+            //    print(logStrStart + "arcMyOtherToAdjacent = " + arcMyOtherToAdjacent);
+            //    DrawArc(circleMyOtherAdjacent, pointFirstAdjacent, pointTangentAdjacentToDC, Color.white, showtime);
+            //    print(logStrStart + "arcAdjacentToDC = " + arcAdjacentToDC);
+            //    DrawArc(circleDestinationToAdjacent, moveDestination, pointTangentDCToAdjacent, Color.white, showtime);
+            //    print(logStrStart + "arcDCToAdjacent = " + arcDCToAdjacent);
+            //    Debug.DrawLine(pointTangentAdjacentToDC, pointTangentDCToAdjacent, Color.green, showtime);
+
+            //    lengthAdjacent = arcMyOtherToAdjacent + arcAdjacentToDC + arcDCToAdjacent + connectionToAdjacent;
+            //}
+            #endregion old circles
+
+            // Передняя полуплоскость
+
+            print(logStrStart + "left half = " + leftHalf + ", front = " + front);
+
+            // Касательная ко мне, чтобы определить сторону взгляда относительно неё
+            Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestination, currentPos, true, leftHalf)[0];
+
+            float angleMyDirectionToTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, moveDir, Vector3.up);
+            Debug.DrawLine(pointTangentDCToMe, currentPos, Color.white, showtime);
+
+            bool rightTurn;
+            if (angleMyDirectionToTangent > 0) // Повёрнут направо от касательной. Выбрать правый и левый задний круги. 
             {
-                print(logStrStart + "left half = " + leftHalf + ", FRONT");
+                rightTurn = true;
+                circleCenterMe = circleCenterMeRight;
+                circleCenterMeOther = circleCenterMeLeft;
+            }
+            else
+            {
+                rightTurn = false;
+                circleCenterMe = circleCenterMeLeft;
+                circleCenterMeOther = circleCenterMeRight;
+            }
+            print(logStrStart + "rightTurn = " + rightTurn);
+            Debug.DrawRay(circleCenterMe, 30 * Vector3.up, Color.cyan, showtime);
 
-                // Касательная ко мне, чтобы определить сторону взгляда относительно неё
-                Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestination, currentPos, true, leftHalf)[0];
+            // Определение к какой стороне моего дальнего круга строить касательную на которой будет лежать доп. круг
+            bool toLeftSide = false;
+            float angleCenterMyOtherToMyTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, circleCenterMeOther - currentPos, Vector3.up);
+            if (angleCenterMyOtherToMyTangent > 0)
+                toLeftSide = true;
 
-                float angleMyDirectionToTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, moveDir, Vector3.up);
-                Debug.DrawLine(pointTangentDCToMe, currentPos, Color.white, showtime);
+            // Касательная между circleCenterDestination и circleCenterMeOther для построения доп. круга
+            (Vector3 pointTangentMyOtherToDC, Vector3 pointTangentDCToMyOther) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestination, leftHalf == toLeftSide, toLeftSide));
+            Vector3 vecTangentDCMyOther = pointTangentMyOtherToDC - pointTangentDCToMyOther;
+            Debug.DrawRay(pointTangentMyOtherToDC, 30 * Vector3.up, Color.green, showtime);
+            Debug.DrawRay(pointTangentDCToMyOther, 30 * Vector3.up, Color.green, showtime);
 
-                bool rightTurn;
-                if (angleMyDirectionToTangent > 0) // Повёрнут направо от касательной. Выбрать правый и левый задний круги. 
+            // Круг дополнительный к другому
+            Vector3 circleMyOtherAdjacent = circleCenterMeOther - 2 * turnRadius * vecTangentDCMyOther.normalized;
+            DrawCircle(circleMyOtherAdjacent, Color.yellow, showtime);
+
+            // Точка маршрута через доп. круг
+            pointFirstAdjacent = circleCenterMeOther - vecTangentDCMyOther.normalized * turnRadius;
+            //Vector3 pointSecondAdjacent = pointTangentDCToMyOther;
+
+            Vector3 pointCircleMeToDest, pointCircleAdjacentToDest;
+            float angleCMTDToDestination, angleCATDToDestination;
+
+            if (front && ((rightTurn && leftHalf) || (!rightTurn && !leftHalf)) || !front && ((!rightTurn && leftHalf) || (rightTurn && !leftHalf)))
+            {
+                // Построить к выбранному основному и доп. кругу касательную из точки назначения
+                pointCircleMeToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
+                pointCircleAdjacentToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
+
+                // Они выпирают в противоположную четверть?
+                angleCMTDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleMeToDest - moveDestination, Vector3.up);
+                angleCATDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleAdjacentToDest - moveDestination, Vector3.up);
+
+                if (front)
                 {
-                    rightTurn = true;
-                    circleCenterMe = circleCenterMeRight;
-                    circleCenterMeOther = circleCenterMeLeft;
-                }
-                else
-                {
-                    rightTurn = false;
-                    circleCenterMe = circleCenterMeLeft;
-                    circleCenterMeOther = circleCenterMeRight;
-                }
-                print(logStrStart + "rightTurn = " + rightTurn);
-                Debug.DrawRay(circleCenterMe, 30 * Vector3.up, Color.cyan, showtime);
-
-                // Определение к какой стороне моего дальнего круга строить касательную на которой будет лежать доп. круг
-                bool toLeftSide = false;
-                float angleCenterMyOtherToMyTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, circleCenterMeOther - currentPos, Vector3.up);
-                if (angleCenterMyOtherToMyTangent > 0)
-                    toLeftSide = true;
-
-                // Касательная между circleCenterDestination и circleCenterMeOther для построения доп. круга
-                (Vector3 pointTangentMyOtherToDC, Vector3 pointTangentDCToMyOther) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestination, leftHalf == toLeftSide, toLeftSide));
-                Vector3 vecTangentDCMyOther = pointTangentMyOtherToDC - pointTangentDCToMyOther;
-                Debug.DrawRay(pointTangentMyOtherToDC, 30 * Vector3.up, Color.green, showtime);
-                Debug.DrawRay(pointTangentDCToMyOther, 30 * Vector3.up, Color.green, showtime);
-
-                // Круг дополнительный к другому
-                Vector3 circleMyOtherAdjacent = circleCenterMeOther - 2 * turnRadius * vecTangentDCMyOther.normalized;
-                DrawCircle(circleMyOtherAdjacent, Color.yellow, showtime);
-
-                // Точка маршрута через доп. круг
-                pointFirstAdjacent = circleCenterMeOther - vecTangentDCMyOther.normalized * turnRadius;
-                //Vector3 pointSecondAdjacent = pointTangentDCToMyOther;
-
-                Vector3 pointCircleMeToDest, pointCircleAdjacentToDest;
-                float angleCMTDToDestination, angleCATDToDestination;
-
-                if ((rightTurn && leftHalf) || (!rightTurn && !leftHalf))
-                {
-                    // Построить к выбранному основному и доп. кругу касательную из точки назначения
-                    pointCircleMeToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-                    pointCircleAdjacentToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-
-                    // Они выпирают в противоположную четверть?
-                    angleCMTDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleMeToDest - moveDestination, Vector3.up);
                     if ((rightTurn && angleCMTDToDestination > 0) || (!rightTurn && angleCMTDToDestination < 0))
                         myMain_DCLeft = !rightTurn; // Да
 
-                    angleCATDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleAdjacentToDest - moveDestination, Vector3.up);
                     if ((!rightTurn && angleCATDToDestination > 0) || (rightTurn && angleCATDToDestination < 0))
-                        myAdjacent_DCLeft = rightTurn; // Да
-                }
-                print(logStrStart + "myMain_DCLeft = " + myMain_DCLeft);
-                print(logStrStart + "myAdjacent_DCLeft = " + myAdjacent_DCLeft);
-
-                Vector3 circleDestinationToMyMain = myMain_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
-                Vector3 circleDestinationToAdjacent = myAdjacent_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
-
-                Debug.DrawRay(circleDestinationToAdjacent, 30 * Vector3.up, Color.cyan, showtime);
-
-                bool leftside, inner_my, inner_adjacent;
-                leftside = rightTurn; // Наоборот в задней полуплоскости
-                inner_my = inner_adjacent = leftHalf == rightTurn;
-                if (!leftHalf && !rightTurn)
-                {
-                        inner_my = !myMain_DCLeft;
-                        inner_adjacent = !myAdjacent_DCLeft;
-                }
-                else if(leftHalf && rightTurn)
-                {
-                        inner_my = myMain_DCLeft;
-                        inner_adjacent = myAdjacent_DCLeft;
-                }
-
-
-                #region readable
-                //if (!leftHalf)
-                //{
-                //    if (rightTurn)
-                //        inner_my = inner_adjacent = false;
-                //    else
-                //    {
-                //        inner_my = !myMain_DCLeft;
-                //        inner_adjacent = !myAdjacent_DCLeft;
-                //    }
-                //}
-                //else
-                //{
-                //    if (rightTurn)
-                //    {
-                //        inner_my = myMain_DCLeft;
-                //        inner_adjacent = myAdjacent_DCLeft;
-                //    }
-                //    else
-                //        inner_my = inner_adjacent = false;
-                //}
-                #endregion readable
-
-                // Длина пути вперёд
-                (pointTangentMyToDC, pointTangentDCToMy) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleDestinationToMyMain, inner_my, leftside));
-
-                float angleDCtoMain = Vector3.Angle(moveDestination - circleDestinationToMyMain, pointTangentDCToMy - circleDestinationToMyMain);
-                float angleMainToDC = Vector3.Angle(currentPos - circleCenterMe, pointTangentMyToDC - circleCenterMe);
-
-                if (Vector3.Angle(targetRotationVec, pointTangentDCToMy - moveDestination) < 90)
-                    angleDCtoMain = 360 - angleDCtoMain;
-                if (Vector3.Angle(moveDir, pointTangentMyToDC - currentPos) > 90)
-                    angleMainToDC = 360 - angleMainToDC;
-
-                float arcDCToMain = angleDCtoMain * turnRadius * Mathf.PI / 180;
-                float arcMainToDC = angleMainToDC * turnRadius * Mathf.PI / 180;
-                float connectionToMain = (pointTangentMyToDC - pointTangentDCToMy).magnitude;
-
-                DrawArc(circleCenterMe, currentPos, pointTangentMyToDC, Color.black, showtime);
-                DrawArc(circleDestinationToMyMain, moveDestination, pointTangentDCToMy, Color.black, showtime);
-                Debug.DrawLine(pointTangentMyToDC, pointTangentDCToMy, Color.grey, showtime);
-
-                lengthMain = arcDCToMain + arcMainToDC + connectionToMain;
-
-
-                // Длина пути назад
-                (pointTangentAdjacentToDC, pointTangentDCToAdjacent) = Deconstruct(FindTangentPoints(false, circleMyOtherAdjacent, circleDestinationToAdjacent, inner_adjacent, leftside));
-
-                float angleMyOtherToAdjacent = Vector3.Angle(currentPos - circleCenterMeOther, pointFirstAdjacent - circleCenterMeOther);
-                float angleAdjacentToDC = 90;
-                float angleDCToAdjacent = Vector3.Angle(moveDestination - circleDestinationToAdjacent, pointTangentDCToAdjacent - circleDestinationToAdjacent);
-
-                if (Vector3.Angle(targetRotationVec, pointTangentDCToAdjacent - moveDestination) < 90)
-                    angleDCToAdjacent = 360 - angleDCToAdjacent;
-                // Невозможно
-                //if (Vector3.Angle(Quaternion.AngleAxis(90, Vector3.up) * (pointTangentAdjacentToDC - pointTangentDCToAdjacent), pointTangentAdjacentToDC - circleCenterMeAdjacent) > 90)
-                //    angleAdjacentToDC = 360 - angleAdjacentToDC;
-
-                float arcMyOtherToAdjacent = angleMyOtherToAdjacent * turnRadius * Mathf.PI / 180;
-                float arcAdjacentToDC = angleAdjacentToDC * turnRadius * Mathf.PI / 180;
-                float arcDCToAdjacent = angleDCToAdjacent * turnRadius * Mathf.PI / 180;
-                float connectionToAdjacent = (pointTangentAdjacentToDC - pointTangentDCToAdjacent).magnitude;
-
-                DrawArc(circleCenterMeOther, currentPos, pointFirstAdjacent, Color.white, showtime);
-                print(logStrStart + "arcMyOtherToAdjacent = " + arcMyOtherToAdjacent);
-                DrawArc(circleMyOtherAdjacent, pointFirstAdjacent, pointTangentAdjacentToDC, Color.white, showtime);
-                print(logStrStart + "arcAdjacentToDC = " + arcAdjacentToDC);
-                DrawArc(circleDestinationToAdjacent, moveDestination, pointTangentDCToAdjacent, Color.white, showtime);
-                print(logStrStart + "arcDCToAdjacent = " + arcDCToAdjacent);
-                Debug.DrawLine(pointTangentAdjacentToDC, pointTangentDCToAdjacent, Color.green, showtime);
-
-                lengthAdjacent = arcMyOtherToAdjacent + arcAdjacentToDC + arcDCToAdjacent + connectionToAdjacent;
-
-            }
-            else // Задняя полуплоскость
-            {
-                print(logStrStart + "left half = " + leftHalf + ", BACK");
-
-                // Касательная ко мне, чтобы определить сторону взгляда относительно неё
-                Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestination, currentPos, true, leftHalf)[0];
-
-                float angleMyDirectionToTangent = Vector3.SignedAngle(moveDir, pointTangentDCToMe - currentPos, Vector3.up);
-                Debug.DrawLine(pointTangentDCToMe, currentPos, Color.white, showtime);
-
-                bool rightTurn;
-                //print(logStrStart + "angleMyDirectionToTangent = " + angleMyDirectionToTangent);
-                if (angleMyDirectionToTangent > 0) // Повёрнут направо от касательной. Выбрать правый и левый задний круги. 
-                {
-                    rightTurn = true;
-                    circleCenterMe = circleCenterMeRight;
-                    circleCenterMeOther = circleCenterMeLeft;
+                        myAdjacent_DCLeft = !rightTurn; // Да
                 }
                 else
                 {
-                    rightTurn = false;
-                    circleCenterMe = circleCenterMeLeft;
-                    circleCenterMeOther = circleCenterMeRight;
-                }
-                print(logStrStart + "rightTurn = " + rightTurn);
-                Debug.DrawRay(circleCenterMe, 30 * Vector3.up, Color.cyan, showtime);
-
-                // Определение к какой стороне моего дальнего круга строить касательную для построения доп. круга
-                bool toLeftSide = false;
-                float angleCenterMyOtherToMyTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, circleCenterMeOther - currentPos, Vector3.up);
-                if (angleCenterMyOtherToMyTangent > 0)
-                    toLeftSide = true;
-
-                // Касательная между circleCenterDestination и circleCenterMeOther для построения доп. круга
-                (Vector3 pointTangentMyOtherToDC, Vector3 pointTangentDCToMyOther) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestination, leftHalf == toLeftSide, toLeftSide));
-                Vector3 vecTangentDCMyOther = pointTangentMyOtherToDC - pointTangentDCToMyOther;
-                Debug.DrawRay(pointTangentMyOtherToDC, 30 * Vector3.up, Color.green, showtime);
-                Debug.DrawRay(pointTangentDCToMyOther, 30 * Vector3.up, Color.green, showtime);
-
-                // Круг дополнительный к другому
-                Vector3 circleMyOtherAdjacent = circleCenterMeOther - 2 * turnRadius * vecTangentDCMyOther.normalized;
-                DrawCircle(circleMyOtherAdjacent, Color.yellow, showtime);
-                //Handles.
-
-
-                // Точка маршрута через доп. круг
-                pointFirstAdjacent = circleCenterMeOther - vecTangentDCMyOther.normalized * turnRadius;
-                //Vector3 pointSecondAdjacent = pointTangentDCToMyOther;
-
-                Vector3 pointCircleMeToDest, pointCircleAdjacentToDest;
-                float angleCMTDToDestination, angleCATDToDestination;
-
-                if ((!rightTurn && leftHalf) || (rightTurn && !leftHalf))
-                {
-                    // Построить к выбранному основному и доп. кругу касательную из точки назначения
-                    pointCircleMeToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-                    pointCircleAdjacentToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-
-                    // Они выпирает в противоположную четверть?
-                    angleCMTDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleMeToDest - moveDestination, Vector3.up);
                     if ((!rightTurn && angleCMTDToDestination > 0) || (rightTurn && angleCMTDToDestination < 0))
                         myMain_DCLeft = rightTurn; // Да
 
@@ -761,99 +919,130 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                     if ((!rightTurn && angleCATDToDestination > 0) || (rightTurn && angleCATDToDestination < 0))
                         myAdjacent_DCLeft = rightTurn; // Да
                 }
-                print(logStrStart + "myMain_DCLeft = " + myMain_DCLeft);
-                print(logStrStart + "myAdjacent_DCLeft = " + myAdjacent_DCLeft);
+            }
+            print(logStrStart + "myMain_DCLeft = " + myMain_DCLeft);
+            print(logStrStart + "myAdjacent_DCLeft = " + myAdjacent_DCLeft);
 
-                Vector3 circleDestinationToMyMain = myMain_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
-                Vector3 circleDestinationToAdjacent = myAdjacent_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
+            Vector3 circleDestinationToMyMain = myMain_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
+            Vector3 circleDestinationToAdjacent = myAdjacent_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
 
-                Debug.DrawRay(circleDestinationToAdjacent, 30 * Vector3.up, Color.cyan, showtime);
+            Debug.DrawRay(circleDestinationToAdjacent, 30 * Vector3.up, Color.cyan, showtime);
 
-                bool leftside, inner_my, inner_adjacent;
-                if (!leftHalf)
+            bool leftside, inner_my, inner_adjacent;
+            leftside = rightTurn; // Наоборот в задней полуплоскости
+            inner_my = inner_adjacent = leftHalf == rightTurn;
+            if (front)
+            {
+
+                if (!leftHalf && !rightTurn)
                 {
-                    if (rightTurn)
-                    {
-                        leftside = true;
-                        inner_my = myMain_DCLeft ? true : false;
-                        inner_adjacent = myAdjacent_DCLeft ? true : false;
-                    }
-                    else
-                    {
-                        inner_my = inner_adjacent = true;
-                        leftside = false;
-                    }
+                    inner_my = !myMain_DCLeft;
+                    inner_adjacent = !myAdjacent_DCLeft;
                 }
-                else
+                else if (leftHalf && rightTurn)
                 {
-                    if (rightTurn)
-                    {
-                        inner_my = inner_adjacent = true;
-                        leftside = true;
-                    }
-                    else
-                    {
-                        leftside = false;
-                        inner_my = myMain_DCLeft ? false : true;
-                        inner_adjacent = myAdjacent_DCLeft ? true : false;
-                    }
+                    inner_my = myMain_DCLeft;
+                    inner_adjacent = myAdjacent_DCLeft;
                 }
+            }
+            else
+            {
+                if (!leftHalf && rightTurn)
+                {
+                    inner_my = myMain_DCLeft;
+                    inner_adjacent = myAdjacent_DCLeft;
+                }
+                else if (leftHalf && !rightTurn)
+                {
+                    inner_my = !myMain_DCLeft;
+                    inner_adjacent = !myAdjacent_DCLeft;
+                }
+            }
 
-                // Длина пути вперёд
-                (pointTangentMyToDC, pointTangentDCToMy) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleDestinationToMyMain, inner_my, leftside));
 
-                float angleDCtoMain = Vector3.Angle(moveDestination - circleDestinationToMyMain, pointTangentDCToMy - circleDestinationToMyMain);
-                float angleMainToDC = Vector3.Angle(currentPos - circleCenterMe, pointTangentMyToDC - circleCenterMe);
+            #region readable
+            //if (!leftHalf)
+            //{
+            //    if (rightTurn)
+            //        inner_my = inner_adjacent = false;
+            //    else
+            //    {
+            //        inner_my = !myMain_DCLeft;
+            //        inner_adjacent = !myAdjacent_DCLeft;
+            //    }
+            //}
+            //else
+            //{
+            //    if (rightTurn)
+            //    {
+            //        inner_my = myMain_DCLeft;
+            //        inner_adjacent = myAdjacent_DCLeft;
+            //    }
+            //    else
+            //        inner_my = inner_adjacent = false;
+            //}
+            #endregion readable
 
+            // Длина пути вперёд
+            (pointTangentMyToDC, pointTangentDCToMy) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleDestinationToMyMain, inner_my, leftside));
+
+            float angleDCtoMain = Vector3.Angle(moveDestination - circleDestinationToMyMain, pointTangentDCToMy - circleDestinationToMyMain);
+            float angleMainToDC = Vector3.Angle(currentPos - circleCenterMe, pointTangentMyToDC - circleCenterMe);
+
+            if (front)
+            {
+                if (Vector3.Angle(targetRotationVec, pointTangentDCToMy - moveDestination) < 90)
+                    angleDCtoMain = 360 - angleDCtoMain;
+                if (Vector3.Angle(moveDir, pointTangentMyToDC - currentPos) > 90)
+                    angleMainToDC = 360 - angleMainToDC;
+            }
+            else
+            {
                 // Невозможно
                 //if (Vector3.Angle(targetRotationVec, pointTangentDCToMy - moveDestination) < 90)
                 //    angleDCtoMain = 360 - angleDCtoMain;
                 if (Vector3.Angle(moveDir, pointTangentMyToDC - currentPos) > 90)
                     angleMainToDC = 360 - angleMainToDC;
-
-                float arcDCToMain = angleDCtoMain * turnRadius * Mathf.PI / 180;
-                float arcMainToDC = angleMainToDC * turnRadius * Mathf.PI / 180;
-                float connectionToMain = (pointTangentMyToDC - pointTangentDCToMy).magnitude;
-
-                DrawArc(circleCenterMe, currentPos, pointTangentMyToDC, Color.black, showtime);
-                DrawArc(circleDestinationToMyMain, moveDestination, pointTangentDCToMy, Color.black, showtime);
-                Debug.DrawLine(pointTangentMyToDC, pointTangentDCToMy, Color.grey, showtime);
-
-                lengthMain = arcDCToMain + arcMainToDC + connectionToMain;
-
-
-                // Длина пути назад
-                (pointTangentAdjacentToDC, pointTangentDCToAdjacent) = Deconstruct(FindTangentPoints(false, circleMyOtherAdjacent, circleDestinationToAdjacent, inner_adjacent, leftside));
-
-                float angleMyOtherToAdjacent = Vector3.Angle(currentPos - circleCenterMeOther, pointFirstAdjacent - circleCenterMeOther);
-                float angleAdjacentToDC = 90;
-                float angleDCToAdjacent = Vector3.Angle(moveDestination - circleDestinationToAdjacent, pointTangentDCToAdjacent - circleDestinationToAdjacent);
-
-                if (Vector3.Angle(targetRotationVec, pointTangentDCToAdjacent - moveDestination) < 90)
-                    angleDCToAdjacent = 360 - angleDCToAdjacent;
-                // Невозможно
-                //if (Vector3.Angle(Quaternion.AngleAxis(90, Vector3.up) * (pointTangentAdjacentToDC - pointTangentDCToAdjacent), pointTangentAdjacentToDC - circleCenterMeAdjacent) > 90)
-                //    angleAdjacentToDC = 360 - angleAdjacentToDC;
-
-                float arcMyOtherToAdjacent = angleMyOtherToAdjacent * turnRadius * Mathf.PI / 180;
-                float arcAdjacentToDC = angleAdjacentToDC * turnRadius * Mathf.PI / 180;
-                float arcDCToAdjacent = angleDCToAdjacent * turnRadius * Mathf.PI / 180;
-                float connectionToAdjacent = (pointTangentAdjacentToDC - pointTangentDCToAdjacent).magnitude;
-
-
-                // Компенсация низкой скорости поворота вконце
-                //pointFirstAdjacent += power / 2 * -interCircleConnectionRight.normalized;
-
-                DrawArc(circleCenterMeOther, currentPos, pointFirstAdjacent, Color.white, showtime);
-                print(logStrStart + "arcMyOtherToAdjacent = " + arcMyOtherToAdjacent);
-                DrawArc(circleMyOtherAdjacent, pointFirstAdjacent, pointTangentAdjacentToDC, Color.white, showtime);
-                print(logStrStart + "arcAdjacentToDC = " + arcAdjacentToDC);
-                DrawArc(circleDestinationToAdjacent, moveDestination, pointTangentDCToAdjacent, Color.white, showtime);
-                print(logStrStart + "arcDCToAdjacent = " + arcDCToAdjacent);
-                Debug.DrawLine(pointTangentAdjacentToDC, pointTangentDCToAdjacent, Color.green, showtime);
-
-                lengthAdjacent = arcMyOtherToAdjacent + arcAdjacentToDC + arcDCToAdjacent + connectionToAdjacent;
             }
+
+            float arcDCToMain = angleDCtoMain * turnRadius * Mathf.PI / 180;
+            float arcMainToDC = angleMainToDC * turnRadius * Mathf.PI / 180;
+            float connectionToMain = (pointTangentMyToDC - pointTangentDCToMy).magnitude;
+
+            DrawArc(circleCenterMe, currentPos, pointTangentMyToDC, Color.black, showtime);
+            DrawArc(circleDestinationToMyMain, moveDestination, pointTangentDCToMy, Color.black, showtime);
+            Debug.DrawLine(pointTangentMyToDC, pointTangentDCToMy, Color.grey, showtime);
+
+            lengthMain = arcDCToMain + arcMainToDC + connectionToMain;
+
+
+            // Длина пути назад
+            (pointTangentAdjacentToDC, pointTangentDCToAdjacent) = Deconstruct(FindTangentPoints(false, circleMyOtherAdjacent, circleDestinationToAdjacent, inner_adjacent, leftside));
+
+            float angleMyOtherToAdjacent = Vector3.Angle(currentPos - circleCenterMeOther, pointFirstAdjacent - circleCenterMeOther);
+            float angleAdjacentToDC = 90;
+            float angleDCToAdjacent = Vector3.Angle(moveDestination - circleDestinationToAdjacent, pointTangentDCToAdjacent - circleDestinationToAdjacent);
+
+            if (Vector3.Angle(targetRotationVec, pointTangentDCToAdjacent - moveDestination) < 90)
+                angleDCToAdjacent = 360 - angleDCToAdjacent;
+            // Невозможно
+            //if (Vector3.Angle(Quaternion.AngleAxis(90, Vector3.up) * (pointTangentAdjacentToDC - pointTangentDCToAdjacent), pointTangentAdjacentToDC - circleCenterMeAdjacent) > 90)
+            //    angleAdjacentToDC = 360 - angleAdjacentToDC;
+
+            float arcMyOtherToAdjacent = angleMyOtherToAdjacent * turnRadius * Mathf.PI / 180;
+            float arcAdjacentToDC = angleAdjacentToDC * turnRadius * Mathf.PI / 180;
+            float arcDCToAdjacent = angleDCToAdjacent * turnRadius * Mathf.PI / 180;
+            float connectionToAdjacent = (pointTangentAdjacentToDC - pointTangentDCToAdjacent).magnitude;
+
+            DrawArc(circleCenterMeOther, currentPos, pointFirstAdjacent, Color.white, showtime);
+            print(logStrStart + "arcMyOtherToAdjacent = " + arcMyOtherToAdjacent);
+            DrawArc(circleMyOtherAdjacent, pointFirstAdjacent, pointTangentAdjacentToDC, Color.white, showtime);
+            print(logStrStart + "arcAdjacentToDC = " + arcAdjacentToDC);
+            DrawArc(circleDestinationToAdjacent, moveDestination, pointTangentDCToAdjacent, Color.white, showtime);
+            print(logStrStart + "arcDCToAdjacent = " + arcDCToAdjacent);
+            Debug.DrawLine(pointTangentAdjacentToDC, pointTangentDCToAdjacent, Color.green, showtime);
+
+            lengthAdjacent = arcMyOtherToAdjacent + arcAdjacentToDC + arcDCToAdjacent + connectionToAdjacent;
 
             print(logStrStart + "lengthMain = " + lengthMain + ", lengthAdjacent = " + lengthAdjacent);
             if (lengthMain - lengthAdjacent < 2)
@@ -872,11 +1061,15 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
                 this.moveDestination = pointFirstAdjacent;
                 intermediateDestination = pointTangentDCToAdjacent;
                 print(logStrStart + "Adjacent chosen");
-                behaviour = BehaviourState.Reverse;
+                if (Vector3.Angle(moveDir, pointFirstAdjacent - currentPos) < 90)
+                    behaviour = BehaviourState.FullThrottle;
+                else
+                    behaviour = BehaviourState.Reverse;
                 print("Set behaviour: " + behaviour);
             }
             finalDestination = moveDestination;
             canChangeState = false;
+            targetRotationY = recievedTargetRotationY;
 
             if (!withTartget)
             {
@@ -905,6 +1098,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             intermediateDestination = finalDestination = Vector3.zero;
             print("No specified rotation move order");
 
+            canChangeState = true;
             forwardDir = transform.forward;
             currentPos = transform.position;
             moveTargetDir = moveDestination - currentPos;
