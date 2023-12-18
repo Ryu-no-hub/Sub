@@ -498,10 +498,6 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             Vector3 circleCenterMeLeft = currentPos + Quaternion.AngleAxis(-90, Vector3.up) * moveDir * turnRadius;
             Vector3 circleCenterMe, circleCenterMeOther;//, circleCenterMeAdjacent;
 
-            // Компенсация низкой скорости поворота вначале
-            circleCenterMeRight += power / 2 * moveDir;
-            circleCenterMeLeft += power / 2 * moveDir;
-
             DrawCircle(circleCenterMeRight, Color.blue, showtime);
             DrawCircle(circleCenterMeLeft, Color.blue, showtime);
 
@@ -1047,10 +1043,12 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             print(logStrStart + "lengthMain = " + lengthMain + ", lengthAdjacent = " + lengthAdjacent);
             if (lengthMain - lengthAdjacent < 2)
             {
-                //this.moveDestination = pointTangentMyToDC;
+                // Компенсация низкой скорости поворота вначале
+                pointTangentDCToMy += power / 2 * moveDir;
+
                 this.moveDestination = pointTangentDCToMy;
-                //intermediateDestination = pointTangentDCToMy;
                 intermediateDestination = Vector3.zero;
+
                 print(logStrStart + "Main chosen");
                 //behaviour = BehaviourState.TurnToDirection;
                 behaviour = BehaviourState.FullThrottle;
@@ -1058,10 +1056,16 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             }
             else
             {
+                bool forward = Vector3.Angle(moveDir, pointFirstAdjacent - currentPos) < 90;
+                // Компенсация низкой скорости поворота вначале
+                pointFirstAdjacent += power / 2 * moveDir * (forward? 1 : -1);
+                pointTangentDCToAdjacent += power / 2 * (pointTangentDCToAdjacent - pointTangentAdjacentToDC).normalized;
+
+
                 this.moveDestination = pointFirstAdjacent;
                 intermediateDestination = pointTangentDCToAdjacent;
                 print(logStrStart + "Adjacent chosen");
-                if (Vector3.Angle(moveDir, pointFirstAdjacent - currentPos) < 90)
+                if (forward)
                     behaviour = BehaviourState.FullThrottle;
                 else
                     behaviour = BehaviourState.Reverse;
