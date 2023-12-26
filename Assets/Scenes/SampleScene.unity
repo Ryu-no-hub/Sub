@@ -13220,6 +13220,37 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1934584267}
   m_CullTransparentMesh: 1
+--- !u!1 &2015606325 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7974364352938372862, guid: c2884ec7a5b6bd14d9ca6ce7044e84ae, type: 3}
+  m_PrefabInstance: {fileID: 371676042432376590}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2015606330
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2015606325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bba2e119a905114fa03037676566b01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  myDrag: 1
+  attackRange: 30
+  behaviour: 0
+  torpPrefab: {fileID: 7978242595915190676, guid: 2ae87cab9b763e84cb70efe1c8e5a0bd, type: 3}
+  target: {fileID: 0}
+  moveDestination: {x: 0, y: 0, z: 0}
+  intermediateDestination: {x: 0, y: 0, z: 0}
+  finalDestination: {x: 0, y: 0, z: 0}
+  stopped: 1
+  searching: 0
+  fixTarget: 0
+  launchTorpedoSound: {fileID: 8300000, guid: 762286d9af2999748bf26881d9b7df67, type: 3}
+  launchFastTorpedoSound: {fileID: 8300000, guid: 259c48eba69fdf44c86dc3e1ff6e4e7d, type: 3}
+  team: 1
 --- !u!1001 &371676042432376590
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13228,10 +13259,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 433794154}
     m_Modifications:
-    - target: {fileID: -501123329511615964, guid: c2884ec7a5b6bd14d9ca6ce7044e84ae, type: 3}
-      propertyPath: attackRange
-      value: 30
-      objectReference: {fileID: 0}
     - target: {fileID: 2428927032841053648, guid: c2884ec7a5b6bd14d9ca6ce7044e84ae, type: 3}
       propertyPath: lengthInSec
       value: 60
@@ -13346,9 +13373,13 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 0}
+    - {fileID: 0}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7974364352938372862, guid: c2884ec7a5b6bd14d9ca6ce7044e84ae, type: 3}
+      insertIndex: 3
+      addedObject: {fileID: 2015606330}
   m_SourcePrefab: {fileID: 100100000, guid: c2884ec7a5b6bd14d9ca6ce7044e84ae, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

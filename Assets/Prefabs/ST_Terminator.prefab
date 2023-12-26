@@ -10938,7 +10938,7 @@ GameObject:
   - component: {fileID: 7341274820138349636}
   - component: {fileID: 9121378161622429914}
   - component: {fileID: 1238393419229814495}
-  - component: {fileID: -501123329511615964}
+  - component: {fileID: -1598034135152497512}
   - component: {fileID: 1818836424169174490}
   - component: {fileID: 463180957153707146}
   - component: {fileID: -1906321821112840000}
@@ -11046,7 +11046,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &-501123329511615964
+--- !u!114 &-1598034135152497512
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -11061,15 +11061,16 @@ MonoBehaviour:
   myDrag: 1
   attackRange: 40
   behaviour: 0
-  torpPrefab: {fileID: 7978242595915190676, guid: 2ae87cab9b763e84cb70efe1c8e5a0bd, type: 3}
+  torpPrefab: {fileID: 0}
   target: {fileID: 0}
   moveDestination: {x: 0, y: 0, z: 0}
   intermediateDestination: {x: 0, y: 0, z: 0}
+  finalDestination: {x: 0, y: 0, z: 0}
   stopped: 1
   searching: 0
   fixTarget: 0
-  launchTorpedoSound: {fileID: 8300000, guid: 762286d9af2999748bf26881d9b7df67, type: 3}
-  launchFastTorpedoSound: {fileID: 8300000, guid: 259c48eba69fdf44c86dc3e1ff6e4e7d, type: 3}
+  launchTorpedoSound: {fileID: 0}
+  launchFastTorpedoSound: {fileID: 0}
   team: 1
 --- !u!114 &1818836424169174490
 MonoBehaviour:

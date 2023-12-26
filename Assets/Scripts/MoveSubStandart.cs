@@ -3,13 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-public class Order{
-    Vector3 destination;
-    GameObject targetUnit;
-    Order nextOrder;
-}
-
-public class MoveSubStandart : MonoBehaviour, ISelectable
+public class MoveSubStandart: MonoBehaviour, ISelectable
 {
     private Rigidbody subRb;
     private ParticleSystem trail;
@@ -43,7 +37,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     private string unitName;
     //private Order;
 
-    public enum BehaviourState { FullThrottle, TurnToDirection, Reverse, ReverseTurn, Idle, StillApproach, Attacking};
+    public enum BehaviourState { FullThrottle, TurnToDirection, Reverse, ReverseTurn, Idle, StillApproach, Attacking };
     public GameObject torpPrefab, target = null;
     public Vector3 moveDestination, intermediateDestination, finalDestination;
     public bool stopped = true, searching = false, fixTarget = false;
@@ -339,7 +333,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
         subRb.AddForce(power * thrust * forwardDir);
         //print("Applying power " + power * thrust * Mathf.Clamp01(targetDistance * thrustDistCoeff) * Mathf.Clamp(mode, -1, 1));
 
-        var distanceStep = (currentPos - oldPos).magnitude;
+        // var distanceStep = (currentPos - oldPos).magnitude;
         var anglestep = 1.5f * turnRadius * Mathf.Sqrt(speed) * Time.deltaTime;
 
         // Поворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
@@ -517,7 +511,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             float angleRelativeToDestination = Vector3.SignedAngle(targetRotationVec, currentPos - moveDestination, Vector3.up);
             circleCenterDestination = angleRelativeToDestination < 0 ? circleCenterDestinationLeft : circleCenterDestinationRight;
 
-            bool leftHalf = angleRelativeToDestination < 0 ? true : false;
+            bool leftHalf = angleRelativeToDestination < 0;
             bool myAdjacent_DCLeft, myMain_DCLeft;
             if (leftHalf)
                 myAdjacent_DCLeft = myMain_DCLeft = true;
@@ -839,8 +833,6 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             //}
             #endregion old circles
 
-            // Передняя полуплоскость
-
             print(logStrStart + "left half = " + leftHalf + ", front = " + front);
 
             // Касательная ко мне, чтобы определить сторону взгляда относительно неё
@@ -925,7 +917,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             Debug.DrawRay(circleDestinationToAdjacent, 30 * Vector3.up, Color.cyan, showtime);
 
             bool leftside, inner_my, inner_adjacent;
-            leftside = rightTurn; // Наоборот в задней полуплоскости
+            leftside = rightTurn;
             inner_my = inner_adjacent = leftHalf == rightTurn;
             if (front)
             {
@@ -1058,7 +1050,7 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
             {
                 bool forward = Vector3.Angle(moveDir, pointFirstAdjacent - currentPos) < 90;
                 // Компенсация низкой скорости поворота вначале
-                pointFirstAdjacent += power / 2 * moveDir * (forward? 1 : -1);
+                pointFirstAdjacent += power / 2 * moveDir * (forward ? 1 : -1);
                 pointTangentDCToAdjacent += power / 2 * (pointTangentDCToAdjacent - pointTangentAdjacentToDC).normalized;
 
 
@@ -1199,10 +1191,10 @@ public class MoveSubStandart : MonoBehaviour, ISelectable
     {
         Vector3 vecRad1 = (point1 - center) * turnRadius;
         Vector3 vecRad2 = (point2 - center) * turnRadius;
-        
+
         for (float u = 0; u < 20; u++)
         {
-            Debug.DrawRay(center, Vector3.Lerp(vecRad1, vecRad2, u/20).normalized * turnRadius, color, showtime);
+            Debug.DrawRay(center, Vector3.Lerp(vecRad1, vecRad2, u / 20).normalized * turnRadius, color, showtime);
         }
     }
 

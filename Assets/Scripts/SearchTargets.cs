@@ -34,8 +34,8 @@ public class SearchTargets : MonoBehaviour
         MoveSubStandart unitScript = unit.GetComponent<MoveSubStandart>();
         int attackRange = unitScript.attackRange;
 
-        print("Entered search routine " + Num + " for unit: " + unit.name + ", behaviour = " + unitScript.behaviour);
-        while (unitScript.behaviour == MoveSubStandart.BehaviourState.Idle)
+        print("Entered search routine " + Num + " for unit: " + unit.name + ", moving = " + unitScript.stopped);
+        while (unitScript.stopped)
         {
             if (unit == null) break;
             float minDistance = float.MaxValue;

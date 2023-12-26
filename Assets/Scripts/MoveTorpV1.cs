@@ -118,28 +118,28 @@ public class MoveTorpV1 : MonoBehaviour
         Debug.Log("targetDistance " + targetDistance);
     }
 
-    //private void OnCollisionEnter(Collision collision)
-    //{
-    //    print("Collision! " + collision.gameObject.name);
-    //    torpRb.velocity = Vector3.zero;
-    //    moveMode = 0;
-    //    bubbles.Stop();
-    //    if (!collision.gameObject.CompareTag("Projectile"))
-    //    {
-    //        foreach(Transform child in transform)
-    //        {
-    //            print("Checking child: " + child.name);
-    //            if (child.transform.CompareTag("Model"))
-    //            {
-    //                Destroy(child.gameObject);
-    //                destroyed = true;
-    //                print("Destroyed: " + child.name);
-    //                break;
-    //            }
-    //        }
-    //        Destroy(gameObject, 2);
-    //    }
-    //}
+    private void OnCollisionEnter(Collision collision)
+    {
+        print("Collision! " + collision.gameObject.name);
+        torpRb.velocity = Vector3.zero;
+        moveMode = 0;
+        bubbles.Stop();
+        if (!collision.gameObject.CompareTag("Projectile"))
+        {
+            foreach (Transform child in transform)
+            {
+                print("Checking child: " + child.name);
+                if (child.transform.CompareTag("Model"))
+                {
+                    Destroy(child.gameObject);
+                    destroyed = true;
+                    print("Destroyed: " + child.name);
+                    break;
+                }
+            }
+            Destroy(gameObject, 2);
+        }
+    }
 
     private void DestroySequence()
     {
