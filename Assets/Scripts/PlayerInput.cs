@@ -263,7 +263,11 @@ public class PlayerInput : MonoBehaviour
         avgDirection.y = 0;
         Vector3 lineStart, targetDirection;
         if (targetRotationY == 0)
+        {
             targetDirection = avgDirection.normalized;
+            targetRotationY = Quaternion.LookRotation(targetDirection).eulerAngles.y;
+            print("targetRotationY  = " + targetRotationY + ", targetDirection = " + targetDirection);
+        }
         else
         {
             targetDirection = Quaternion.Euler(new Vector3(0, targetRotationY, 0)) * Vector3.forward;
@@ -302,6 +306,7 @@ public class PlayerInput : MonoBehaviour
             bool isGroup = selectedUnits.Count > 1;
             print("targetRotationY = " + targetRotationY);
             unitScriptStandart.SetMoveDestination(targetPointsInLine[minDistanceIndex], false, targetRotationY, moveInGroup: isGroup);
+            //unitScriptStandart.MoveTo(targetPointsInLine[minDistanceIndex], targetRotationY);
             
             print("Target position = " + targetPointsInLine[minDistanceIndex] + " for " + unit.name);
             //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().moveDestinationition + " for " + unit.name);
@@ -331,7 +336,7 @@ public class PlayerInput : MonoBehaviour
         foreach (Transform child in transform)
         {
             if (child.transform.Find("Selection Sprite").gameObject.activeSelf)
-                child.GetComponent<MoveSubStandart>().Stop(true);
+                child.GetComponent<MoveSubStandart>().Stop();
         }
 
 

@@ -1,9 +1,18 @@
+#region orignal
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-public class MoveSubStandart: MonoBehaviour, ISelectable
+public class Order
+{
+    Vector3 destination;
+    GameObject targetUnit;
+    Order nextOrder;
+}
+
+public class MoveSubStandart : MonoBehaviour, ISelectable
 {
     private Rigidbody subRb;
     private ParticleSystem trail;
@@ -13,34 +22,37 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
     private float power = 5f;
     private float speed;
     public float myDrag = 1f;
-    private float thrust;
-    private int rotationSpeedCoeff = 1500, steadyYawSpeed, steadyPitchSpeed = 10, borderDistance = 10, turnRadius = 10;
+    private int steadyYawSpeed, steadyPitchSpeed = 10, borderDistance = 10, turnRadius = 10, maxSpeed = 20;
+    private float rotationCoeff;
+    private short thrust = -1;
 
     // Attack parameters
     private float reloadTime = 3f;
     private int maxAmmo = 20, ammo = 20, angleStepCount = 0;
     public int attackRange = 40;
 
-    private Vector3 currentPos, forwardDir, moveTargetDir, attackTargetDir, startVelocity, slowedVelocity;
-    private Vector3 oldPos = Vector3.zero;
+    private Vector3 currentPos, forwardDir, attackTargetDir, startVelocity, slowedVelocity, chasedDirection, tangentVec, circleCenterDestination;
+    private Vector3 oldPos = Vector3.zero, firstDir, secondDir;
     private Quaternion newRotation;
     private float forwardTargetAngle, forwardTargetAngleStart, velocityTargetAngle;
-    private float targetDistance;
     private float stopTime, lastShotTime;
     private float dragDecel;
     private float targetRotationY;
     private bool aligned = true;
-    private bool canChangeState = true;
+    private bool isMaxSpeed = false;
     private float timer;
     private AudioSource submarineSource;
-    public BehaviourState behaviour;
+    public ThrustDirection thrustDirection;
+    public RotateDirection rotateDirection;
     private string unitName;
-    //private Order;
 
-    public enum BehaviourState { FullThrottle, TurnToDirection, Reverse, ReverseTurn, Idle, StillApproach, Attacking };
+    public enum ThrustDirection { Idle, Forward, Backward = -1 };
+    public enum RotateDirection { Straight, Right, Left };
+    public bool moving;
+
     public GameObject torpPrefab, target = null;
     public Vector3 moveDestination, intermediateDestination, finalDestination;
-    public bool stopped = true, searching = false, fixTarget = false;
+    public bool stopped = true, searching = false, fixTarget = false, forward, turnRight;
     public AudioClip launchTorpedoSound, launchFastTorpedoSound;
 
     private int count = 0;
@@ -76,14 +88,11 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
         print("trail = " + trail);
         forwardDir = transform.forward;
         currentPos = transform.position;
-        moveDestination = finalDestination = intermediateDestination = Vector3.zero;
-        moveTargetDir = moveDestination - currentPos;
-        forwardTargetAngle = Vector3.Angle(forwardDir, moveTargetDir);
-        targetDistance = moveTargetDir.magnitude;
+        moveDestination = finalDestination = intermediateDestination = tangentVec = circleCenterDestination = Vector3.zero;
         selectionSprite = transform.Find("Selection Sprite").gameObject;
         submarineSource = GetComponent<AudioSource>();
         targetRotationY = transform.localEulerAngles.y;
-        behaviour = BehaviourState.Idle;
+        rotationCoeff = 1.5f * turnRadius;
         stopped = false;
         unitName = gameObject.name;
         //if (unitName.IndexOf(' ') != -1) unitName = unitName.Substring(0, unitName.IndexOf(' '));
@@ -95,149 +104,48 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
     void Update()
     {
         timer += Time.deltaTime;
-        //if (gameObject.name == "ST_Terminator")
-        //{
-        //    print("timer = " + timer);
-        //    print("count = " + count++);
-        //}
         startVelocity = subRb.velocity;
+        speed = startVelocity.magnitude;
 
-        // Симуляция сопротивления среды
-        if (startVelocity.magnitude > 0.5f)
+        if (chasedDirection != Vector3.zero)
         {
-            //slowedVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
-            //slowedVelocity = startVelocity * (1 - myDrag * Mathf.Clamp(startVelocity.magnitude, 1, 1000) * Time.deltaTime);
-            forwardDir = transform.forward;
-            float alignSin = Mathf.Sin(Vector3.Angle(forwardDir, startVelocity) * Mathf.PI / 180);
-            //print("alignSin = " + alignSin + ", angle = " + Vector3.Angle(forwardDir, startVelocity));
+            // Движение
+            if (startVelocity.magnitude < maxSpeed)
+            {
+                Accelerate();
+            }
+            else
+            {
+                if (!isMaxSpeed)
+                {
+                    subRb.velocity = startVelocity.normalized * maxSpeed;
+                    isMaxSpeed = true;
+                }
 
-            slowedVelocity = startVelocity * (1f - myDrag * (1 + alignSin) * Time.deltaTime);
-            //slowedVelocity = Quaternion.RotateTowards(Quaternion.LookRotation(slowedVelocity, transform.up), transform.rotation, alignSin * Time.deltaTime) * slowedVelocity;
-            slowedVelocity = Vector3.RotateTowards(slowedVelocity, transform.forward * slowedVelocity.magnitude, alignSin * Time.deltaTime, 0f);
-            subRb.velocity = slowedVelocity;
+                Move();
+            }
 
-            //print("slowedVelocity before turn = " + slowedVelocity);
-            //subRb.velocity = slowedVelocity;
-            Debug.DrawRay(transform.position, slowedVelocity * 10, Color.white);
-            Debug.DrawRay(transform.position, slowedVelocity * 10, Color.yellow);
-            //print("slowedVelocity after turn = " + slowedVelocity);// + ", rotation = " + Vector3.Angle(slowedVelocity, forwardDir));
-            //print("rotation = " + Vector3.Angle(slowedVelocity, forwardDir) + ", turn step = " + alignSin * Time.deltaTime);
-            speed = slowedVelocity.magnitude;
-
-            //print(transform.name + " speed = " + speed);
-            //print("targetDistance = " + targetDistance);
-
-            // Проверка когда пора выключать двигатели
-            stopTime = targetDistance / speed;
-            dragDecel = (startVelocity.magnitude - slowedVelocity.magnitude) / Time.deltaTime;
-            velocityTargetAngle = Vector3.Angle(slowedVelocity, moveTargetDir);
-
-            //print("startVelocity = " + startVelocity.magnitude + ", slowedVelocity = " + slowedVelocity.magnitude);
-            //print("stopTime = " + stopTime + ", targetDistance = " + targetDistance  + ", speed = " + speed );
-            //print("real stop time = " + speed / dragDecel * myDrag + ", velocityTargetAngle = " + velocityTargetAngle);
-            //print("dragDecel = " + dragDecel);
-            //print("stopped = " + stopped + ", moveDestination = " + moveDestination);
+            // Поворот
+            if (Vector3.Angle(transform.forward, chasedDirection) > 0.01f)
+                Rotate();
+        }        
+        else if(speed > 0.1f)
+        {
+            WaterResistance(); // Замедление
         }
-        else if (!stopped && moveDestination == Vector3.zero)
+        else if(moving)
         {
-            subRb.velocity = subRb.angularVelocity = slowedVelocity = Vector3.zero;
-            stopped = true;
-            print("Kill velocity");
+            Stop(); // Остановка
         }
 
-        if (behaviour != BehaviourState.Idle)
-        {
-            currentPos = transform.position;
-            moveTargetDir = moveDestination - currentPos;
-            targetDistance = moveTargetDir.magnitude;
-            forwardDir = transform.forward;
-            Debug.DrawRay(currentPos, forwardDir * 10, Color.green);
 
-            Move();
+        forwardDir = transform.forward;
+        currentPos = transform.position;
 
-            if (!canChangeState)
-                goto Stopcheck;
-            // По необходимости измененить режим движения 
-            forwardTargetAngle = Vector3.Angle(forwardDir, moveTargetDir);
-            var speedTargetAngle = Vector3.Angle(slowedVelocity, moveTargetDir);
-            switch (behaviour)
-            {
-                case BehaviourState.TurnToDirection:
-                    //if (forwardTargetAngle < 90 / turnRadius * targetDistance)
-                    if (speedTargetAngle < forwardTargetAngleStart / (2 + turnRadius / targetDistance))
-                    {
-                        behaviour = BehaviourState.FullThrottle;
-                        print(behaviour);
-                        print("Angle turn limit = " + forwardTargetAngleStart / (2.4f + turnRadius / targetDistance));
-                        print("Angle speedTargetAngle = " + speedTargetAngle);
-                    }
-                    break;
-                case BehaviourState.ReverseTurn:
-                    //if (forwardTargetAngle < forwardTargetAngleStart/1.5f)
-                    if (forwardTargetAngle < forwardTargetAngleStart / (2 + turnRadius / targetDistance))
-                    {
-                        behaviour = BehaviourState.TurnToDirection;
-                        print(behaviour);
-                        print("Angle turn limit = " + forwardTargetAngleStart / (2 + turnRadius / targetDistance));
-                        print("Angle forwardTargetAngle = " + forwardTargetAngle);
-                    }
-                    break;
-            }
+        //ChangeBehaviour();
+        //Move();
 
-        // Проверка когда пора выключать двигатели
-        Stopcheck:
-            #region Stop check
-            if (intermediateDestination != Vector3.zero)
-            {
-                if (target != null && targetDistance < attackRange)
-                {
-                    Stop();
-                    print("Intermediate exists, target in range!");
-                }
-                else if (targetDistance < 2 || (stopTime < speed / dragDecel * myDrag) && (velocityTargetAngle < 5 || velocityTargetAngle > 175))
-                {
-                    Stop();
-                    aligned = true;
-                    if (targetDistance < 2) stopTime = 0.1f;
-                    StartCoroutine(CSetMoveDestination(stopTime, intermediateDestination, false, targetRotationY, predefinedState: BehaviourState.FullThrottle));
-                    intermediateDestination = Vector3.zero;
-                    print("First point reached, stoptime = " + stopTime);
-                    print("finalDestination = " + finalDestination);
-                }
-            }
-            else if (finalDestination == Vector3.zero && target == null)
-            {
-                if (
-                targetDistance < 2 // погрешность достижения точки, либо она слишком близко
-                || ((stopTime < speed / dragDecel * myDrag) && (velocityTargetAngle < 5 || velocityTargetAngle > 175)) // направление примерно на точку, чтобы не промахиваться по времени остановки
-                    )
-                {
-                    Stop(true);
-                    print("Final stop, targetDistance = " + targetDistance);
-                }
-            }
-            else if (target != null)
-            {
-                if (targetDistance < attackRange)
-                {
-                    Stop();
-                    print("Target in range!");
-                }
-            }
-            else if (targetDistance < 2 || (stopTime < speed / dragDecel * myDrag) && (velocityTargetAngle < 5 || velocityTargetAngle > 175))
-            {
-                Stop();
-                aligned = true;
-                if (targetDistance < 2) stopTime = 0.1f;
-                StartCoroutine(CSetMoveDestination(stopTime, finalDestination, false, targetRotationY, predefinedState: BehaviourState.FullThrottle));
-                finalDestination = Vector3.zero;
-                print("Second point reached, stoptime = " + stopTime);
-            }
-
-            #endregion Stop check
-
-        }
-        else if (target == null && !aligned) // Выравнивание без цели
+        if (chasedDirection == Vector3.zero && !aligned) // Выравнивание без цели
         {
             //print(transform.name + " Aligning, angles = " + transform.localEulerAngles + ", targetRotationY = " + targetRotationY);
             TurnToAnglesXY(0, targetRotationY, 1, true);
@@ -264,6 +172,7 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
             }
             else if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // На дистанции выстрела
             {
+                moveDestination = Vector3.zero;
                 if (timer - lastShotTime > reloadTime - 0.1f || lastShotTime == 0) // Не идёт перезарядка
                 {
                     //stopped = false;
@@ -283,9 +192,11 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
                 }
                 //else if(team==1) print("timer - lastShotTime = " + (timer - lastShotTime));
             }
-            else if (behaviour != BehaviourState.StillApproach) // Цель уплыла - подплыть на расстояние выстрела
+            else if (/*thrustDirection == BehaviourState.StillApproach*/ true) // Цель уплыла - подплыть на расстояние выстрела
             {
                 moveDestination = target.transform.position - (attackRange - 2) * attackTargetDir.normalized;
+                chasedDirection = target.transform.position - currentPos;
+                SetMoveParams(ThrustDirection.Forward);
                 print("Setting move destination to approach target for " + transform.name + " target = " + target);
             }
         }
@@ -294,59 +205,84 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
             aligned = false;
         }
     }
-    void Move()
+    private void ChangeBehaviour()
     {
-        //print("behaviour = " + behaviour);
-        newRotation = Quaternion.LookRotation(moveTargetDir - slowedVelocity);
-        switch (behaviour)
+        if (chasedDirection == Vector3.zero) return;
+        Debug.DrawRay(currentPos, chasedDirection * 100, Color.red);
+
+        if (firstDir == Vector3.zero)
         {
-            case BehaviourState.TurnToDirection:
-                thrust = 0.4f;
-                if (trail.transform.rotation == transform.rotation)
+            if (secondDir == Vector3.zero)
+            {
+                print("distance = " + (transform.position - moveDestination).magnitude);
+                if ((transform.position - moveDestination).magnitude < 1)
                 {
-                    trail.transform.rotation = Quaternion.Inverse(transform.rotation);
-                    //print("Trail forward");
+                    SetMoveParams(ThrustDirection.Idle);
+                    chasedDirection = moveDestination = Vector3.zero;
                 }
-                break;
-            case BehaviourState.FullThrottle:
-                thrust = 1;
-                angleStepCount = 0;
-                break;
-            case BehaviourState.ReverseTurn: // Движение задом, разворачиваясь к точке передом
-                thrust = -0.5f;
-                break;
-            case BehaviourState.Reverse: // Движение задом на точку
-                newRotation *= Quaternion.AngleAxis(Vector3.Angle(moveTargetDir, forwardDir), Vector3.up);
-                if (trail.transform.rotation != transform.rotation)
+            }
+            else
+            {
+                print("distance to radius = " + (transform.position - circleCenterDestination).magnitude);
+                if ((transform.position - circleCenterDestination).magnitude < turnRadius + 1)
                 {
-                    trail.transform.rotation = transform.rotation;
-                    //print("Trail reverse");
+                    print("On circle edge");
+                    Vector3 targetRotationVec = Quaternion.Euler(new Vector3(0, targetRotationY, 0)) * Vector3.forward;
+                    chasedDirection = targetRotationVec;
+                    secondDir = Vector3.zero;
                 }
-                goto case BehaviourState.ReverseTurn;
+            }
         }
+        else if (secondDir != Vector3.zero && thrustDirection == ThrustDirection.Backward)
+        {
+            Debug.DrawRay(currentPos, firstDir, Color.black);
+            float angle = Vector3.SignedAngle(transform.forward, firstDir, Vector3.up);
+            print(angle);
+            if ((angle > -80 && angle < 0) || (angle < 80 && angle > 0))
+            {
+                chasedDirection = secondDir;
+                SetMoveParams(ThrustDirection.Forward);
+                firstDir = Vector3.zero;
+            }
+        }
+    }
 
-        if (!trail.isPlaying)
-            trail.Play();
+    private void WaterResistance()
+    {
+        // Симуляция сопротивления среды
+        float alignSin = Mathf.Sin(Vector3.Angle(transform.forward, startVelocity) * Mathf.PI / 180);
+        //print("alignSin = " + alignSin + ", angle = " + Vector3.Angle(forwardDir, startVelocity));
 
-        // Тяга вперёд
-        //subRb.AddForce(power * thrust * Mathf.Clamp01(targetDistance / borderDistance) * forwardDir);
-        subRb.AddForce(power * thrust * forwardDir);
-        //print("Applying power " + power * thrust * Mathf.Clamp01(targetDistance * thrustDistCoeff) * Mathf.Clamp(mode, -1, 1));
+        slowedVelocity = startVelocity * (1f - myDrag * (1 + alignSin) * Time.deltaTime);
+        //slowedVelocity = Vector3.RotateTowards(slowedVelocity, transform.forward * slowedVelocity.magnitude, alignSin * Time.deltaTime, 0f);
+        slowedVelocity = Vector3.RotateTowards(slowedVelocity, transform.forward, alignSin * Time.deltaTime, 0f);
+        subRb.velocity = slowedVelocity;
 
-        // var distanceStep = (currentPos - oldPos).magnitude;
-        var anglestep = 1.5f * turnRadius * Mathf.Sqrt(speed) * Time.deltaTime;
+        Debug.DrawRay(transform.position, slowedVelocity * 10, Color.yellow);
+        //print("slowedVelocity before turn = " + slowedVelocity);
+        //print("slowedVelocity after turn = " + slowedVelocity);// + ", rotation = " + Vector3.Angle(slowedVelocity, forwardDir));
+        //print("rotation = " + Vector3.Angle(slowedVelocity, forwardDir) + ", turn step = " + alignSin * Time.deltaTime);
+        //print(transform.name + " speed = " + speed);
+    }
 
-        // Поворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, anglestep);
-        //transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, turnRadius * speed * Time.deltaTime);
+    private void Accelerate()
+    {
+        subRb.AddForce((int)thrustDirection * power * Time.deltaTime * transform.forward);
+        print("Applying force: " + (int)thrustDirection * power * Time.deltaTime);
+    }
 
-        //print("speed = " + speed + ", sqrt(speed) = " + Mathf.Sqrt(speed));
-        //print("step=" + ++angleStepCount + ", angle=" + anglestep + ", targetDistance = " + targetDistance);
-        //print("speed = " + speed + ", angle=" + anglestep + ", step=" + ++angleStepCount);
-        //print("travelled = " + distanceStep + ", angle/travelled = " + anglestep / distanceStep);
+    private void Move()
+    {
+        transform.position += maxSpeed * Time.deltaTime * transform.forward;
+        print("Moving: " + maxSpeed * Time.deltaTime);
+    }
 
-        oldPos = currentPos;
-        Debug.DrawRay(currentPos, (moveTargetDir - slowedVelocity), Color.red);
+    private void Rotate()
+    {
+        //newRotation = Quaternion.LookRotation(chasedDirection - slowedVelocity);
+        newRotation = Quaternion.LookRotation(chasedDirection);
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, rotationCoeff * Mathf.Sqrt(speed) * Time.deltaTime);
+        print("Rotating: " + maxSpeed * Time.deltaTime);
     }
 
     private bool TurnToAnglesXY(float targetAngleX, float targetAngleY, int threshold, bool hardAlignment)
@@ -417,28 +353,17 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
         }
     }
 
-    public void Stop(bool completeStop = false)
+    public void Stop()
     {
-        print("ENGINES STOP, target = " + target + ", targetRotationY = " + targetRotationY);
+        print("Kill velocity");
+        moving = false;
+        moveDestination = firstDir = secondDir = subRb.velocity = slowedVelocity = Vector3.zero;
+        if (!fixTarget)
+            searching = false;
 
-        trail.Stop();
-        canChangeState = true;
-        behaviour = BehaviourState.Idle;
-        subRb.angularVelocity = moveDestination = Vector3.zero;
-        if (completeStop)
-        {
-            Invoke(nameof(SearchReset), stopTime);
-            aligned = true;
-        }
+        //SetMoveParams(ThrustDirection.Idle);
     }
 
-    private void SearchReset()
-    {
-        print(gameObject.name + " Enable target search");
-        searching = false;
-    }
-
-    //private void Shoot()
     private IEnumerator Shoot(GameObject target, float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -461,14 +386,14 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
         //print("10xforwardDir = " + 10 * forwardDir.normalized);
     }
 
-    private IEnumerator CSetMoveDestination(float time, Vector3 moveDestination, bool withTartget, float recievedTargetRotationY = 0, bool moveInGroup = true, BehaviourState predefinedState = BehaviourState.Idle)
+    private IEnumerator CSetMoveDestination(float time, Vector3 moveDestination, bool withTartget, float recievedTargetRotationY = 0, bool moveInGroup = true)
     {
         yield return new WaitForSeconds(time);
-        SetMoveDestination(moveDestination, withTartget, recievedTargetRotationY, moveInGroup, predefinedState);
+        SetMoveDestination(moveDestination, withTartget, recievedTargetRotationY, moveInGroup);
         //print("Setting next point = " + moveDestination);
     }
 
-    public void SetMoveDestination(Vector3 moveDestination, bool withTartget, float recievedTargetRotationY = 0, bool moveInGroup = true, BehaviourState predefinedState = BehaviourState.Idle)
+    public void SetMoveDestination(Vector3 moveDestination, bool withTartget, float recievedTargetRotationY = 0, bool moveInGroup = true)
     {
         print("Entered SetMoveDestination, moveDestination = " + moveDestination);
         print("recievedTargetRotationY = " + recievedTargetRotationY);
@@ -479,626 +404,208 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
             fixTarget = false;
         }
         aligned = false;
-        stopped = false;
+        moving = true;
+        this.moveDestination = moveDestination;
 
-        if (recievedTargetRotationY != 0 && predefinedState == BehaviourState.Idle)
+
+        Vector3 currentPos = transform.position;
+        if (recievedTargetRotationY != 0)
         {
             float showtime = 15;
-            Vector3 currentPos = transform.position;
+            //recievedTargetRotationY = recievedTargetRotationY < 180 ? recievedTargetRotationY : recievedTargetRotationY - 360;
+            Vector3 targetRotationVec = Quaternion.Euler(new Vector3(0, recievedTargetRotationY, 0)) * Vector3.back;
+            Debug.DrawRay(moveDestination, targetRotationVec * 100, Color.yellow, showtime);
+            string logStrStart = "BUILD TRAJECTORY: ";
+            
 
-            // Круги вплотную к подлодке
-            Vector3 moveDir = transform.forward;
-            Vector3 circleCenterMeRight = currentPos + Quaternion.AngleAxis(90, Vector3.up) * moveDir * turnRadius;
-            Vector3 circleCenterMeLeft = currentPos + Quaternion.AngleAxis(-90, Vector3.up) * moveDir * turnRadius;
-            Vector3 circleCenterMe, circleCenterMeOther;//, circleCenterMeAdjacent;
-
-            DrawCircle(circleCenterMeRight, Color.blue, showtime);
-            DrawCircle(circleCenterMeLeft, Color.blue, showtime);
-
-            // Круги вплотную к точке назначения
-            Vector3 targetRotationVec = Quaternion.Euler(new Vector3(0, recievedTargetRotationY, 0)) * Vector3.forward;
-            Vector3 circleCenterDestinationLeft = moveDestination + Quaternion.AngleAxis(-90, Vector3.up) * targetRotationVec * turnRadius;
-            Vector3 circleCenterDestinationRight = moveDestination + Quaternion.AngleAxis(90, Vector3.up) * targetRotationVec * turnRadius;
-            Vector3 circleCenterDestination;
-
-            // Компенсация низкой скорости поворота вконце
-            circleCenterDestinationLeft += power / 2 * -targetRotationVec;
-            circleCenterDestinationRight += power / 2 * -targetRotationVec;
-
-            DrawCircle(circleCenterDestinationLeft, Color.red, showtime);
-            DrawCircle(circleCenterDestinationRight, Color.red, showtime);
-
+            // Определение отностительного расположения
             float angleRelativeToDestination = Vector3.SignedAngle(targetRotationVec, currentPos - moveDestination, Vector3.up);
-            circleCenterDestination = angleRelativeToDestination < 0 ? circleCenterDestinationLeft : circleCenterDestinationRight;
 
             bool leftHalf = angleRelativeToDestination < 0;
-            bool myAdjacent_DCLeft, myMain_DCLeft;
-            if (leftHalf)
-                myAdjacent_DCLeft = myMain_DCLeft = true;
-            else
-                myAdjacent_DCLeft = myMain_DCLeft = false;
-
-            float angleTangentToMyCircle = Vector3.Angle(currentPos, moveDestination - currentPos);
-            print("angleRelativeToDestination = " + angleRelativeToDestination);
-            float lengthMain, lengthAdjacent;
-            Vector3 pointTangentMyToDC, pointTangentDCToMy, pointFirstAdjacent, pointTangentAdjacentToDC, pointTangentDCToAdjacent;
-            string logStrStart = "BUILD TRAJECTORY: ";
             bool front = angleRelativeToDestination > -90 && angleRelativeToDestination < 90;
-
-            #region old circles
-            //if (front) // Передняя полуплоскость
-            //{
-            //    print(logStrStart + "left half = " + leftHalf + ", FRONT");
-
-            //    // Касательная ко мне, чтобы определить сторону взгляда относительно неё
-            //    Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestination, currentPos, true, leftHalf)[0];
-
-            //    float angleMyDirectionToTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, moveDir, Vector3.up);
-            //    Debug.DrawLine(pointTangentDCToMe, currentPos, Color.white, showtime);
-
-            //    bool rightTurn;
-            //    if (angleMyDirectionToTangent > 0) // Повёрнут направо от касательной. Выбрать правый и левый задний круги. 
-            //    {
-            //        rightTurn = true;
-            //        circleCenterMe = circleCenterMeRight;
-            //        circleCenterMeOther = circleCenterMeLeft;
-            //    }
-            //    else
-            //    {
-            //        rightTurn = false;
-            //        circleCenterMe = circleCenterMeLeft;
-            //        circleCenterMeOther = circleCenterMeRight;
-            //    }
-            //    print(logStrStart + "rightTurn = " + rightTurn);
-            //    Debug.DrawRay(circleCenterMe, 30 * Vector3.up, Color.cyan, showtime);
-
-            //    // Определение к какой стороне моего дальнего круга строить касательную на которой будет лежать доп. круг
-            //    bool toLeftSide = false;
-            //    float angleCenterMyOtherToMyTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, circleCenterMeOther - currentPos, Vector3.up);
-            //    if (angleCenterMyOtherToMyTangent > 0)
-            //        toLeftSide = true;
-
-            //    // Касательная между circleCenterDestination и circleCenterMeOther для построения доп. круга
-            //    (Vector3 pointTangentMyOtherToDC, Vector3 pointTangentDCToMyOther) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestination, leftHalf == toLeftSide, toLeftSide));
-            //    Vector3 vecTangentDCMyOther = pointTangentMyOtherToDC - pointTangentDCToMyOther;
-            //    Debug.DrawRay(pointTangentMyOtherToDC, 30 * Vector3.up, Color.green, showtime);
-            //    Debug.DrawRay(pointTangentDCToMyOther, 30 * Vector3.up, Color.green, showtime);
-
-            //    // Круг дополнительный к другому
-            //    Vector3 circleMyOtherAdjacent = circleCenterMeOther - 2 * turnRadius * vecTangentDCMyOther.normalized;
-            //    DrawCircle(circleMyOtherAdjacent, Color.yellow, showtime);
-
-            //    // Точка маршрута через доп. круг
-            //    pointFirstAdjacent = circleCenterMeOther - vecTangentDCMyOther.normalized * turnRadius;
-            //    //Vector3 pointSecondAdjacent = pointTangentDCToMyOther;
-
-            //    Vector3 pointCircleMeToDest, pointCircleAdjacentToDest;
-            //    float angleCMTDToDestination, angleCATDToDestination;
-
-            //    if ((rightTurn && leftHalf) || (!rightTurn && !leftHalf))
-            //    {
-            //        // Построить к выбранному основному и доп. кругу касательную из точки назначения
-            //        pointCircleMeToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-            //        pointCircleAdjacentToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-
-            //        // Они выпирают в противоположную четверть?
-            //        angleCMTDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleMeToDest - moveDestination, Vector3.up);
-            //        if ((rightTurn && angleCMTDToDestination > 0) || (!rightTurn && angleCMTDToDestination < 0))
-            //            myMain_DCLeft = !rightTurn; // Да
-
-            //        angleCATDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleAdjacentToDest - moveDestination, Vector3.up);
-            //        if ((!rightTurn && angleCATDToDestination > 0) || (rightTurn && angleCATDToDestination < 0))
-            //            myAdjacent_DCLeft = rightTurn; // Да
-            //    }
-            //    print(logStrStart + "myMain_DCLeft = " + myMain_DCLeft);
-            //    print(logStrStart + "myAdjacent_DCLeft = " + myAdjacent_DCLeft);
-
-            //    Vector3 circleDestinationToMyMain = myMain_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
-            //    Vector3 circleDestinationToAdjacent = myAdjacent_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
-
-            //    Debug.DrawRay(circleDestinationToAdjacent, 30 * Vector3.up, Color.cyan, showtime);
-
-            //    bool leftside, inner_my, inner_adjacent;
-            //    leftside = rightTurn; // Наоборот в задней полуплоскости
-            //    inner_my = inner_adjacent = leftHalf == rightTurn;
-            //    if (!leftHalf && !rightTurn)
-            //    {
-            //            inner_my = !myMain_DCLeft;
-            //            inner_adjacent = !myAdjacent_DCLeft;
-            //    }
-            //    else if(leftHalf && rightTurn)
-            //    {
-            //            inner_my = myMain_DCLeft;
-            //            inner_adjacent = myAdjacent_DCLeft;
-            //    }
-
-
-            //    #region readable
-            //    //if (!leftHalf)
-            //    //{
-            //    //    if (rightTurn)
-            //    //        inner_my = inner_adjacent = false;
-            //    //    else
-            //    //    {
-            //    //        inner_my = !myMain_DCLeft;
-            //    //        inner_adjacent = !myAdjacent_DCLeft;
-            //    //    }
-            //    //}
-            //    //else
-            //    //{
-            //    //    if (rightTurn)
-            //    //    {
-            //    //        inner_my = myMain_DCLeft;
-            //    //        inner_adjacent = myAdjacent_DCLeft;
-            //    //    }
-            //    //    else
-            //    //        inner_my = inner_adjacent = false;
-            //    //}
-            //    #endregion readable
-
-            //    // Длина пути вперёд
-            //    (pointTangentMyToDC, pointTangentDCToMy) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleDestinationToMyMain, inner_my, leftside));
-
-            //    float angleDCtoMain = Vector3.Angle(moveDestination - circleDestinationToMyMain, pointTangentDCToMy - circleDestinationToMyMain);
-            //    float angleMainToDC = Vector3.Angle(currentPos - circleCenterMe, pointTangentMyToDC - circleCenterMe);
-
-            //    if (Vector3.Angle(targetRotationVec, pointTangentDCToMy - moveDestination) < 90)
-            //        angleDCtoMain = 360 - angleDCtoMain;
-            //    if (Vector3.Angle(moveDir, pointTangentMyToDC - currentPos) > 90)
-            //        angleMainToDC = 360 - angleMainToDC;
-
-            //    float arcDCToMain = angleDCtoMain * turnRadius * Mathf.PI / 180;
-            //    float arcMainToDC = angleMainToDC * turnRadius * Mathf.PI / 180;
-            //    float connectionToMain = (pointTangentMyToDC - pointTangentDCToMy).magnitude;
-
-            //    DrawArc(circleCenterMe, currentPos, pointTangentMyToDC, Color.black, showtime);
-            //    DrawArc(circleDestinationToMyMain, moveDestination, pointTangentDCToMy, Color.black, showtime);
-            //    Debug.DrawLine(pointTangentMyToDC, pointTangentDCToMy, Color.grey, showtime);
-
-            //    lengthMain = arcDCToMain + arcMainToDC + connectionToMain;
-
-
-            //    // Длина пути назад
-            //    (pointTangentAdjacentToDC, pointTangentDCToAdjacent) = Deconstruct(FindTangentPoints(false, circleMyOtherAdjacent, circleDestinationToAdjacent, inner_adjacent, leftside));
-
-            //    float angleMyOtherToAdjacent = Vector3.Angle(currentPos - circleCenterMeOther, pointFirstAdjacent - circleCenterMeOther);
-            //    float angleAdjacentToDC = 90;
-            //    float angleDCToAdjacent = Vector3.Angle(moveDestination - circleDestinationToAdjacent, pointTangentDCToAdjacent - circleDestinationToAdjacent);
-
-            //    if (Vector3.Angle(targetRotationVec, pointTangentDCToAdjacent - moveDestination) < 90)
-            //        angleDCToAdjacent = 360 - angleDCToAdjacent;
-            //    // Невозможно
-            //    //if (Vector3.Angle(Quaternion.AngleAxis(90, Vector3.up) * (pointTangentAdjacentToDC - pointTangentDCToAdjacent), pointTangentAdjacentToDC - circleCenterMeAdjacent) > 90)
-            //    //    angleAdjacentToDC = 360 - angleAdjacentToDC;
-
-            //    float arcMyOtherToAdjacent = angleMyOtherToAdjacent * turnRadius * Mathf.PI / 180;
-            //    float arcAdjacentToDC = angleAdjacentToDC * turnRadius * Mathf.PI / 180;
-            //    float arcDCToAdjacent = angleDCToAdjacent * turnRadius * Mathf.PI / 180;
-            //    float connectionToAdjacent = (pointTangentAdjacentToDC - pointTangentDCToAdjacent).magnitude;
-
-            //    DrawArc(circleCenterMeOther, currentPos, pointFirstAdjacent, Color.white, showtime);
-            //    print(logStrStart + "arcMyOtherToAdjacent = " + arcMyOtherToAdjacent);
-            //    DrawArc(circleMyOtherAdjacent, pointFirstAdjacent, pointTangentAdjacentToDC, Color.white, showtime);
-            //    print(logStrStart + "arcAdjacentToDC = " + arcAdjacentToDC);
-            //    DrawArc(circleDestinationToAdjacent, moveDestination, pointTangentDCToAdjacent, Color.white, showtime);
-            //    print(logStrStart + "arcDCToAdjacent = " + arcDCToAdjacent);
-            //    Debug.DrawLine(pointTangentAdjacentToDC, pointTangentDCToAdjacent, Color.green, showtime);
-
-            //    lengthAdjacent = arcMyOtherToAdjacent + arcAdjacentToDC + arcDCToAdjacent + connectionToAdjacent;
-
-            //}
-            //else // Задняя полуплоскость
-            //{
-            //    print(logStrStart + "left half = " + leftHalf + ", BACK");
-
-            //    // Касательная ко мне, чтобы определить сторону взгляда относительно неё
-            //    Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestination, currentPos, true, leftHalf)[0];
-
-            //    float angleMyDirectionToTangent = Vector3.SignedAngle(moveDir, pointTangentDCToMe - currentPos, Vector3.up);
-            //    Debug.DrawLine(pointTangentDCToMe, currentPos, Color.white, showtime);
-
-            //    bool rightTurn;
-            //    //print(logStrStart + "angleMyDirectionToTangent = " + angleMyDirectionToTangent);
-            //    if (angleMyDirectionToTangent > 0) // Повёрнут направо от касательной. Выбрать правый и левый задний круги. 
-            //    {
-            //        rightTurn = true;
-            //        circleCenterMe = circleCenterMeRight;
-            //        circleCenterMeOther = circleCenterMeLeft;
-            //    }
-            //    else
-            //    {
-            //        rightTurn = false;
-            //        circleCenterMe = circleCenterMeLeft;
-            //        circleCenterMeOther = circleCenterMeRight;
-            //    }
-            //    print(logStrStart + "rightTurn = " + rightTurn);
-            //    Debug.DrawRay(circleCenterMe, 30 * Vector3.up, Color.cyan, showtime);
-
-            //    // Определение к какой стороне моего дальнего круга строить касательную для построения доп. круга
-            //    bool toLeftSide = false;
-            //    float angleCenterMyOtherToMyTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, circleCenterMeOther - currentPos, Vector3.up);
-            //    if (angleCenterMyOtherToMyTangent > 0)
-            //        toLeftSide = true;
-
-            //    // Касательная между circleCenterDestination и circleCenterMeOther для построения доп. круга
-            //    (Vector3 pointTangentMyOtherToDC, Vector3 pointTangentDCToMyOther) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestination, leftHalf == toLeftSide, toLeftSide));
-            //    Vector3 vecTangentDCMyOther = pointTangentMyOtherToDC - pointTangentDCToMyOther;
-            //    Debug.DrawRay(pointTangentMyOtherToDC, 30 * Vector3.up, Color.green, showtime);
-            //    Debug.DrawRay(pointTangentDCToMyOther, 30 * Vector3.up, Color.green, showtime);
-
-            //    // Круг дополнительный к другому
-            //    Vector3 circleMyOtherAdjacent = circleCenterMeOther - 2 * turnRadius * vecTangentDCMyOther.normalized;
-            //    DrawCircle(circleMyOtherAdjacent, Color.yellow, showtime);
-            //    //Handles.
-
-
-            //    // Точка маршрута через доп. круг
-            //    pointFirstAdjacent = circleCenterMeOther - vecTangentDCMyOther.normalized * turnRadius;
-            //    //Vector3 pointSecondAdjacent = pointTangentDCToMyOther;
-
-            //    Vector3 pointCircleMeToDest, pointCircleAdjacentToDest;
-            //    float angleCMTDToDestination, angleCATDToDestination;
-
-            //    if ((!rightTurn && leftHalf) || (rightTurn && !leftHalf))
-            //    {
-            //        // Построить к выбранному основному и доп. кругу касательную из точки назначения
-            //        pointCircleMeToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-            //        pointCircleAdjacentToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-
-            //        // Они выпирает в противоположную четверть?
-            //        angleCMTDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleMeToDest - moveDestination, Vector3.up);
-            //        if ((!rightTurn && angleCMTDToDestination > 0) || (rightTurn && angleCMTDToDestination < 0))
-            //            myMain_DCLeft = rightTurn; // Да
-
-            //        angleCATDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleAdjacentToDest - moveDestination, Vector3.up);
-            //        if ((!rightTurn && angleCATDToDestination > 0) || (rightTurn && angleCATDToDestination < 0))
-            //            myAdjacent_DCLeft = rightTurn; // Да
-            //    }
-            //    print(logStrStart + "myMain_DCLeft = " + myMain_DCLeft);
-            //    print(logStrStart + "myAdjacent_DCLeft = " + myAdjacent_DCLeft);
-
-            //    Vector3 circleDestinationToMyMain = myMain_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
-            //    Vector3 circleDestinationToAdjacent = myAdjacent_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
-
-            //    Debug.DrawRay(circleDestinationToAdjacent, 30 * Vector3.up, Color.cyan, showtime);
-
-            //    bool leftside, inner_my, inner_adjacent;
-            //    leftside = rightTurn;
-            //    inner_my = inner_adjacent = leftHalf == rightTurn;
-            //    if (!leftHalf && rightTurn)
-            //    {
-            //        inner_my = myMain_DCLeft;
-            //        inner_adjacent = myAdjacent_DCLeft;
-            //    } 
-            //    else if (leftHalf && !rightTurn)
-            //    {
-            //        inner_my = !myMain_DCLeft;
-            //        inner_adjacent = !myAdjacent_DCLeft;
-            //    }
-
-            //    // Длина пути вперёд
-            //    (pointTangentMyToDC, pointTangentDCToMy) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleDestinationToMyMain, inner_my, leftside));
-
-            //    float angleDCtoMain = Vector3.Angle(moveDestination - circleDestinationToMyMain, pointTangentDCToMy - circleDestinationToMyMain);
-            //    float angleMainToDC = Vector3.Angle(currentPos - circleCenterMe, pointTangentMyToDC - circleCenterMe);
-
-            //    // Невозможно
-            //    //if (Vector3.Angle(targetRotationVec, pointTangentDCToMy - moveDestination) < 90)
-            //    //    angleDCtoMain = 360 - angleDCtoMain;
-            //    if (Vector3.Angle(moveDir, pointTangentMyToDC - currentPos) > 90)
-            //        angleMainToDC = 360 - angleMainToDC;
-
-            //    float arcDCToMain = angleDCtoMain * turnRadius * Mathf.PI / 180;
-            //    float arcMainToDC = angleMainToDC * turnRadius * Mathf.PI / 180;
-            //    float connectionToMain = (pointTangentMyToDC - pointTangentDCToMy).magnitude;
-
-            //    DrawArc(circleCenterMe, currentPos, pointTangentMyToDC, Color.black, showtime);
-            //    DrawArc(circleDestinationToMyMain, moveDestination, pointTangentDCToMy, Color.black, showtime);
-            //    Debug.DrawLine(pointTangentMyToDC, pointTangentDCToMy, Color.grey, showtime);
-
-            //    lengthMain = arcDCToMain + arcMainToDC + connectionToMain;
-
-
-            //    // Длина пути назад
-            //    (pointTangentAdjacentToDC, pointTangentDCToAdjacent) = Deconstruct(FindTangentPoints(false, circleMyOtherAdjacent, circleDestinationToAdjacent, inner_adjacent, leftside));
-
-            //    float angleMyOtherToAdjacent = Vector3.Angle(currentPos - circleCenterMeOther, pointFirstAdjacent - circleCenterMeOther);
-            //    float angleAdjacentToDC = 90;
-            //    float angleDCToAdjacent = Vector3.Angle(moveDestination - circleDestinationToAdjacent, pointTangentDCToAdjacent - circleDestinationToAdjacent);
-
-            //    if (Vector3.Angle(targetRotationVec, pointTangentDCToAdjacent - moveDestination) < 90)
-            //        angleDCToAdjacent = 360 - angleDCToAdjacent;
-            //    // Невозможно
-            //    //if (Vector3.Angle(Quaternion.AngleAxis(90, Vector3.up) * (pointTangentAdjacentToDC - pointTangentDCToAdjacent), pointTangentAdjacentToDC - circleCenterMeAdjacent) > 90)
-            //    //    angleAdjacentToDC = 360 - angleAdjacentToDC;
-
-            //    float arcMyOtherToAdjacent = angleMyOtherToAdjacent * turnRadius * Mathf.PI / 180;
-            //    float arcAdjacentToDC = angleAdjacentToDC * turnRadius * Mathf.PI / 180;
-            //    float arcDCToAdjacent = angleDCToAdjacent * turnRadius * Mathf.PI / 180;
-            //    float connectionToAdjacent = (pointTangentAdjacentToDC - pointTangentDCToAdjacent).magnitude;
-
-
-            //    // Компенсация низкой скорости поворота вконце
-            //    //pointFirstAdjacent += power / 2 * -interCircleConnectionRight.normalized;
-
-            //    DrawArc(circleCenterMeOther, currentPos, pointFirstAdjacent, Color.white, showtime);
-            //    print(logStrStart + "arcMyOtherToAdjacent = " + arcMyOtherToAdjacent);
-            //    DrawArc(circleMyOtherAdjacent, pointFirstAdjacent, pointTangentAdjacentToDC, Color.white, showtime);
-            //    print(logStrStart + "arcAdjacentToDC = " + arcAdjacentToDC);
-            //    DrawArc(circleDestinationToAdjacent, moveDestination, pointTangentDCToAdjacent, Color.white, showtime);
-            //    print(logStrStart + "arcDCToAdjacent = " + arcDCToAdjacent);
-            //    Debug.DrawLine(pointTangentAdjacentToDC, pointTangentDCToAdjacent, Color.green, showtime);
-
-            //    lengthAdjacent = arcMyOtherToAdjacent + arcAdjacentToDC + arcDCToAdjacent + connectionToAdjacent;
-            //}
-            #endregion old circles
-
+            bool swapDestCircle = false;
             print(logStrStart + "left half = " + leftHalf + ", front = " + front);
 
-            // Касательная ко мне, чтобы определить сторону взгляда относительно неё
-            Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestination, currentPos, true, leftHalf)[0];
+            // Круг у точки назначения
+            float angleForDestinationCircle = angleRelativeToDestination < 0 ? -90 : 90;
+            Vector3 centerDCDir = Quaternion.AngleAxis(angleForDestinationCircle, Vector3.up) * targetRotationVec * turnRadius;
+            Vector3 circleCenterDestinationMe = moveDestination + centerDCDir, circleCenterDestinationMeOther = moveDestination - centerDCDir;
 
-            float angleMyDirectionToTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, moveDir, Vector3.up);
+            // Касательная ко мне, чтобы определить сторону взгляда относительно неё
+            Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestinationMe, currentPos, true, leftHalf)[0];
+            float angleMyDirectionToTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, forwardDir, Vector3.up);
             Debug.DrawLine(pointTangentDCToMe, currentPos, Color.white, showtime);
 
-            bool rightTurn;
-            if (angleMyDirectionToTangent > 0) // Повёрнут направо от касательной. Выбрать правый и левый задний круги. 
-            {
-                rightTurn = true;
-                circleCenterMe = circleCenterMeRight;
-                circleCenterMeOther = circleCenterMeLeft;
-            }
-            else
-            {
-                rightTurn = false;
-                circleCenterMe = circleCenterMeLeft;
-                circleCenterMeOther = circleCenterMeRight;
-            }
+            bool rightTurn = angleMyDirectionToTangent > 0;
             print(logStrStart + "rightTurn = " + rightTurn);
-            Debug.DrawRay(circleCenterMe, 30 * Vector3.up, Color.cyan, showtime);
-
-            // Определение к какой стороне моего дальнего круга строить касательную на которой будет лежать доп. круг
-            bool toLeftSide = false;
-            float angleCenterMyOtherToMyTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, circleCenterMeOther - currentPos, Vector3.up);
-            if (angleCenterMyOtherToMyTangent > 0)
-                toLeftSide = true;
-
-            // Касательная между circleCenterDestination и circleCenterMeOther для построения доп. круга
-            (Vector3 pointTangentMyOtherToDC, Vector3 pointTangentDCToMyOther) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestination, leftHalf == toLeftSide, toLeftSide));
-            Vector3 vecTangentDCMyOther = pointTangentMyOtherToDC - pointTangentDCToMyOther;
-            Debug.DrawRay(pointTangentMyOtherToDC, 30 * Vector3.up, Color.green, showtime);
-            Debug.DrawRay(pointTangentDCToMyOther, 30 * Vector3.up, Color.green, showtime);
-
-            // Круг дополнительный к другому
-            Vector3 circleMyOtherAdjacent = circleCenterMeOther - 2 * turnRadius * vecTangentDCMyOther.normalized;
-            DrawCircle(circleMyOtherAdjacent, Color.yellow, showtime);
-
-            // Точка маршрута через доп. круг
-            pointFirstAdjacent = circleCenterMeOther - vecTangentDCMyOther.normalized * turnRadius;
-            //Vector3 pointSecondAdjacent = pointTangentDCToMyOther;
-
-            Vector3 pointCircleMeToDest, pointCircleAdjacentToDest;
-            float angleCMTDToDestination, angleCATDToDestination;
-
-            if (front && ((rightTurn && leftHalf) || (!rightTurn && !leftHalf)) || !front && ((!rightTurn && leftHalf) || (rightTurn && !leftHalf)))
-            {
-                // Построить к выбранному основному и доп. кругу касательную из точки назначения
-                pointCircleMeToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-                pointCircleAdjacentToDest = FindTangentPoints(true, circleCenterMe, moveDestination, true, rightTurn)[0];
-
-                // Они выпирают в противоположную четверть?
-                angleCMTDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleMeToDest - moveDestination, Vector3.up);
-                angleCATDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleAdjacentToDest - moveDestination, Vector3.up);
-
-                if (front)
-                {
-                    if ((rightTurn && angleCMTDToDestination > 0) || (!rightTurn && angleCMTDToDestination < 0))
-                        myMain_DCLeft = !rightTurn; // Да
-
-                    if ((!rightTurn && angleCATDToDestination > 0) || (rightTurn && angleCATDToDestination < 0))
-                        myAdjacent_DCLeft = !rightTurn; // Да
-                }
-                else
-                {
-                    if ((!rightTurn && angleCMTDToDestination > 0) || (rightTurn && angleCMTDToDestination < 0))
-                        myMain_DCLeft = rightTurn; // Да
-
-                    angleCATDToDestination = Vector3.SignedAngle(targetRotationVec, pointCircleAdjacentToDest - moveDestination, Vector3.up);
-                    if ((!rightTurn && angleCATDToDestination > 0) || (rightTurn && angleCATDToDestination < 0))
-                        myAdjacent_DCLeft = rightTurn; // Да
-                }
-            }
-            print(logStrStart + "myMain_DCLeft = " + myMain_DCLeft);
-            print(logStrStart + "myAdjacent_DCLeft = " + myAdjacent_DCLeft);
-
-            Vector3 circleDestinationToMyMain = myMain_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
-            Vector3 circleDestinationToAdjacent = myAdjacent_DCLeft ? circleCenterDestinationLeft : circleCenterDestinationRight;
-
-            Debug.DrawRay(circleDestinationToAdjacent, 30 * Vector3.up, Color.cyan, showtime);
-
-            bool leftside, inner_my, inner_adjacent;
-            leftside = rightTurn;
-            inner_my = inner_adjacent = leftHalf == rightTurn;
-            if (front)
-            {
-
-                if (!leftHalf && !rightTurn)
-                {
-                    inner_my = !myMain_DCLeft;
-                    inner_adjacent = !myAdjacent_DCLeft;
-                }
-                else if (leftHalf && rightTurn)
-                {
-                    inner_my = myMain_DCLeft;
-                    inner_adjacent = myAdjacent_DCLeft;
-                }
-            }
-            else
-            {
-                if (!leftHalf && rightTurn)
-                {
-                    inner_my = myMain_DCLeft;
-                    inner_adjacent = myAdjacent_DCLeft;
-                }
-                else if (leftHalf && !rightTurn)
-                {
-                    inner_my = !myMain_DCLeft;
-                    inner_adjacent = !myAdjacent_DCLeft;
-                }
-            }
 
 
-            #region readable
-            //if (!leftHalf)
+
+            float angleForMyCircle = rightTurn ? 90 : -90;
+            Vector3 centerMyDir = Quaternion.AngleAxis(angleForMyCircle, Vector3.up) * forwardDir * turnRadius;
+            Vector3 circleCenterMeMain = currentPos + centerMyDir, circleCenterMeOther = currentPos - centerMyDir;
+            Vector3 point_1, point_2;
+            float a = Mathf.Abs(angleMyDirectionToTangent);
+
+            #region fullcheck
+            //if ((front && rightTurn != leftHalf) || (!front && rightTurn == leftHalf)) // Не надо проверять на пересечение границы
             //{
-            //    if (rightTurn)
-            //        inner_my = inner_adjacent = false;
-            //    else
+            //    if (a > 60) // Вперёд
             //    {
-            //        inner_my = !myMain_DCLeft;
-            //        inner_adjacent = !myAdjacent_DCLeft;
+            //        SetMoveParams(ThrustDirection.Forward);
+            //        firstDir = Vector3.zero;
+            //        (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleCenterDestinationMe, !front, rightTurn != leftHalf));
+            //    }
+            //    else // Назад
+            //    {
+            //        SetMoveParams(ThrustDirection.Backward);
+            //        firstDir = Quaternion.AngleAxis(front == leftHalf ? -90 : 90, Vector3.up) * (currentPos - pointTangentDCToMe);
+            //        (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestinationMe, !front, rightTurn != leftHalf));
             //    }
             //}
-            //else
+            //else // Проверка на пересечение границы сторон
             //{
-            //    if (rightTurn)
+            //    float angleForward_TargetRotation = Vector3.Angle(targetRotationVec, forwardDir), x;
+            //    if (a > 60) // Вперёд
             //    {
-            //        inner_my = myMain_DCLeft;
-            //        inner_adjacent = myAdjacent_DCLeft;
+            //        SetMoveParams(ThrustDirection.Forward);
+            //        firstDir = Vector3.zero;
+            //        if (front)
+            //        {
+            //            x = angleForward_TargetRotation > 90 ? turnRadius * Mathf.Sin(angleForward_TargetRotation) : turnRadius * (1 + Mathf.Cos(angleForward_TargetRotation));
+            //            print(logStrStart + "front" + ", x = " + x);
+            //            if (Mathf.Abs(angleRelativeToDestination) < Mathf.Asin(x / (currentPos - moveDestination).magnitude))
+            //            {
+            //                swapDestCircle = !leftHalf;
+            //                (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleCenterDestinationMeOther, false, leftHalf));
+            //            }
+            //            else
+            //            {
+            //                (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleCenterDestinationMe, true, leftHalf));
+            //            }
+            //        }
+            //        else
+            //        {
+            //            x = angleForward_TargetRotation < 90 ? turnRadius * Mathf.Sin(angleForward_TargetRotation) : turnRadius * (1 + Mathf.Cos(angleForward_TargetRotation));
+            //            print(logStrStart + "back" + ", x = " + x);
+            //            if (Mathf.Abs(180 - angleRelativeToDestination) < Mathf.Asin(x / (currentPos - moveDestination).magnitude))
+            //            {
+            //                swapDestCircle = !leftHalf;
+            //                (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleCenterDestinationMeOther, true, !leftHalf));
+            //            }
+            //            else
+            //            {
+            //                (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleCenterDestinationMe, false, !leftHalf));
+            //            }
+            //        }
             //    }
-            //    else
-            //        inner_my = inner_adjacent = false;
+            //    else // Назад
+            //    {
+            //        SetMoveParams(ThrustDirection.Backward);
+            //        if (front)
+            //        {
+            //            firstDir = Quaternion.AngleAxis(front == !leftHalf ? -90 : 90, Vector3.up) * (currentPos - pointTangentDCToMe);
+            //            (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestinationMe, true, leftHalf));
+            //        }
+            //        else
+            //        {
+            //            x = turnRadius * Mathf.Sin(angleForward_TargetRotation);
+            //            print(logStrStart + "back" + ", x = " + x);
+            //            if (Mathf.Abs(180 - angleRelativeToDestination) < Mathf.Asin(x / (currentPos - moveDestination).magnitude))
+            //            {
+            //                swapDestCircle = !leftHalf;
+            //                firstDir = Quaternion.AngleAxis(front == !leftHalf ? -90 : 90, Vector3.up) * (currentPos - pointTangentDCToMe);
+            //                (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestinationMeOther, true, !leftHalf));
+            //            }
+            //            else
+            //            {
+            //                firstDir = Quaternion.AngleAxis(front == !leftHalf ? -90 : 90, Vector3.up) * (currentPos - pointTangentDCToMe);
+            //                (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestinationMe, false, !leftHalf));
+            //            }
+            //        }
+            //    }
             //}
-            #endregion readable
+            #endregion fullcheck
 
-            // Длина пути вперёд
-            (pointTangentMyToDC, pointTangentDCToMy) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleDestinationToMyMain, inner_my, leftside));
-
-            float angleDCtoMain = Vector3.Angle(moveDestination - circleDestinationToMyMain, pointTangentDCToMy - circleDestinationToMyMain);
-            float angleMainToDC = Vector3.Angle(currentPos - circleCenterMe, pointTangentMyToDC - circleCenterMe);
-
-            if (front)
+            bool forward = a > 60;
+            print("Anglestart = " + a);
+            SetMoveParams(forward ? ThrustDirection.Forward : ThrustDirection.Backward);
+            firstDir = Vector3.zero;
+            if ((front && rightTurn != leftHalf) || (!front && rightTurn == leftHalf)) // Не надо проверять на пересечение границы
             {
-                if (Vector3.Angle(targetRotationVec, pointTangentDCToMy - moveDestination) < 90)
-                    angleDCtoMain = 360 - angleDCtoMain;
-                if (Vector3.Angle(moveDir, pointTangentMyToDC - currentPos) > 90)
-                    angleMainToDC = 360 - angleMainToDC;
+                if (!forward)
+                    firstDir = Quaternion.AngleAxis(front == leftHalf ? -180 : 180, Vector3.up) * (currentPos - pointTangentDCToMe);
+                (point_1, point_2) = Deconstruct(FindTangentPoints(false, forward ? circleCenterMeMain : circleCenterMeOther, circleCenterDestinationMe, !front, rightTurn != leftHalf));
             }
+            else // Проверка на пересечение границы сторон
+            {
+                float angleForward_TargetRotation = Vector3.Angle(front ? targetRotationVec : -targetRotationVec, forwardDir), x;
+                if (forward) // Вперёд
+                {
+                    x = angleForward_TargetRotation > 90 ? turnRadius * Mathf.Sin(angleForward_TargetRotation) : turnRadius * (1 + Mathf.Cos(angleForward_TargetRotation));
+                    print(logStrStart + "front" + ", x = " + x);
+                    if (Mathf.Abs(angleRelativeToDestination) < Mathf.Asin(x / (currentPos - moveDestination).magnitude))
+                    {
+                        swapDestCircle = true;
+                        (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeMain, circleCenterDestinationMeOther, !front, front == leftHalf));
+                    }
+                    else
+                    {
+                        (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeMain, circleCenterDestinationMe, front, front == leftHalf));
+                    }
+                }
+                else // Назад
+                {
+                    if (front)
+                    {
+                        firstDir = Quaternion.AngleAxis(front == !leftHalf ? -180 : 180, Vector3.up) * (currentPos - pointTangentDCToMe);
+                        (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestinationMe, true, leftHalf));
+                    }
+                    else
+                    {
+                        x = turnRadius * Mathf.Sin(angleForward_TargetRotation);
+                        print(logStrStart + "back" + ", x = " + x);
+                        if (Mathf.Abs(180 - angleRelativeToDestination) < Mathf.Asin(x / (currentPos - moveDestination).magnitude))
+                        {
+                            swapDestCircle = true;
+                            firstDir = Quaternion.AngleAxis(front == !leftHalf ? -180 : 180, Vector3.up) * (currentPos - pointTangentDCToMe);
+                            (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestinationMeOther, true, !leftHalf));
+                        }
+                        else
+                        {
+                            firstDir = Quaternion.AngleAxis(front == !leftHalf ? -180 : 180, Vector3.up) * (currentPos - pointTangentDCToMe);
+                            (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestinationMe, false, !leftHalf));
+                        }
+                    }
+                }
+            }
+
+            //Vector3 circleCenterMe = forward ? circleCenterMeMain : circleCenterMeOther;
+            circleCenterDestination = swapDestCircle ? circleCenterDestinationMeOther : circleCenterDestinationMe;
+            Debug.DrawRay(circleCenterDestination, 10 * Vector3.up, Color.cyan, showtime);
+            DrawCircle(circleCenterDestination, Color.blue, showtime);
+
+
+            //(point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeMain, circleCenterMe, !front, rightTurn != leftHalf));
+            secondDir = point_2 - point_1;
+            Debug.DrawLine(point_1, point_2, Color.green, showtime);
+            if (firstDir == Vector3.zero)
+                chasedDirection = secondDir;
             else
-            {
-                // Невозможно
-                //if (Vector3.Angle(targetRotationVec, pointTangentDCToMy - moveDestination) < 90)
-                //    angleDCtoMain = 360 - angleDCtoMain;
-                if (Vector3.Angle(moveDir, pointTangentMyToDC - currentPos) > 90)
-                    angleMainToDC = 360 - angleMainToDC;
-            }
-
-            float arcDCToMain = angleDCtoMain * turnRadius * Mathf.PI / 180;
-            float arcMainToDC = angleMainToDC * turnRadius * Mathf.PI / 180;
-            float connectionToMain = (pointTangentMyToDC - pointTangentDCToMy).magnitude;
-
-            DrawArc(circleCenterMe, currentPos, pointTangentMyToDC, Color.black, showtime);
-            DrawArc(circleDestinationToMyMain, moveDestination, pointTangentDCToMy, Color.black, showtime);
-            Debug.DrawLine(pointTangentMyToDC, pointTangentDCToMy, Color.grey, showtime);
-
-            lengthMain = arcDCToMain + arcMainToDC + connectionToMain;
-
-
-            // Длина пути назад
-            (pointTangentAdjacentToDC, pointTangentDCToAdjacent) = Deconstruct(FindTangentPoints(false, circleMyOtherAdjacent, circleDestinationToAdjacent, inner_adjacent, leftside));
-
-            float angleMyOtherToAdjacent = Vector3.Angle(currentPos - circleCenterMeOther, pointFirstAdjacent - circleCenterMeOther);
-            float angleAdjacentToDC = 90;
-            float angleDCToAdjacent = Vector3.Angle(moveDestination - circleDestinationToAdjacent, pointTangentDCToAdjacent - circleDestinationToAdjacent);
-
-            if (Vector3.Angle(targetRotationVec, pointTangentDCToAdjacent - moveDestination) < 90)
-                angleDCToAdjacent = 360 - angleDCToAdjacent;
-            // Невозможно
-            //if (Vector3.Angle(Quaternion.AngleAxis(90, Vector3.up) * (pointTangentAdjacentToDC - pointTangentDCToAdjacent), pointTangentAdjacentToDC - circleCenterMeAdjacent) > 90)
-            //    angleAdjacentToDC = 360 - angleAdjacentToDC;
-
-            float arcMyOtherToAdjacent = angleMyOtherToAdjacent * turnRadius * Mathf.PI / 180;
-            float arcAdjacentToDC = angleAdjacentToDC * turnRadius * Mathf.PI / 180;
-            float arcDCToAdjacent = angleDCToAdjacent * turnRadius * Mathf.PI / 180;
-            float connectionToAdjacent = (pointTangentAdjacentToDC - pointTangentDCToAdjacent).magnitude;
-
-            DrawArc(circleCenterMeOther, currentPos, pointFirstAdjacent, Color.white, showtime);
-            print(logStrStart + "arcMyOtherToAdjacent = " + arcMyOtherToAdjacent);
-            DrawArc(circleMyOtherAdjacent, pointFirstAdjacent, pointTangentAdjacentToDC, Color.white, showtime);
-            print(logStrStart + "arcAdjacentToDC = " + arcAdjacentToDC);
-            DrawArc(circleDestinationToAdjacent, moveDestination, pointTangentDCToAdjacent, Color.white, showtime);
-            print(logStrStart + "arcDCToAdjacent = " + arcDCToAdjacent);
-            Debug.DrawLine(pointTangentAdjacentToDC, pointTangentDCToAdjacent, Color.green, showtime);
-
-            lengthAdjacent = arcMyOtherToAdjacent + arcAdjacentToDC + arcDCToAdjacent + connectionToAdjacent;
-
-            print(logStrStart + "lengthMain = " + lengthMain + ", lengthAdjacent = " + lengthAdjacent);
-            if (lengthMain - lengthAdjacent < 2)
-            {
-                // Компенсация низкой скорости поворота вначале
-                pointTangentDCToMy += power / 2 * moveDir;
-
-                this.moveDestination = pointTangentDCToMy;
-                intermediateDestination = Vector3.zero;
-
-                print(logStrStart + "Main chosen");
-                //behaviour = BehaviourState.TurnToDirection;
-                behaviour = BehaviourState.FullThrottle;
-                print("Set behaviour: " + behaviour);
-            }
-            else
-            {
-                bool forward = Vector3.Angle(moveDir, pointFirstAdjacent - currentPos) < 90;
-                // Компенсация низкой скорости поворота вначале
-                pointFirstAdjacent += power / 2 * moveDir * (forward ? 1 : -1);
-                pointTangentDCToAdjacent += power / 2 * (pointTangentDCToAdjacent - pointTangentAdjacentToDC).normalized;
-
-
-                this.moveDestination = pointFirstAdjacent;
-                intermediateDestination = pointTangentDCToAdjacent;
-                print(logStrStart + "Adjacent chosen");
-                if (forward)
-                    behaviour = BehaviourState.FullThrottle;
-                else
-                    behaviour = BehaviourState.Reverse;
-                print("Set behaviour: " + behaviour);
-            }
-            finalDestination = moveDestination;
-            canChangeState = false;
+                chasedDirection = firstDir;
             targetRotationY = recievedTargetRotationY;
 
-            if (!withTartget)
-            {
-                target = null;
-                fixTarget = false;
-            }
-            aligned = false;
-            stopped = false;
+            //circleCenterDestination = swapDestCircle ? 
             return;
         }
-        else if (recievedTargetRotationY != 0)
-        {
-            print("Recieved direction: " + predefinedState);
-            canChangeState = false;
-            behaviour = predefinedState;
-            this.moveDestination = moveDestination;
-            targetRotationY = recievedTargetRotationY;
-            print("Set behaviour: " + behaviour);
-            print("Set targetRotationY  = " + targetRotationY);
-            return;
-        }
-        //else if (predefinedState == BehaviourState.Idle)
         else
         {
-            this.moveDestination = moveDestination;
-            intermediateDestination = finalDestination = Vector3.zero;
             print("No specified rotation move order");
 
-            canChangeState = true;
-            forwardDir = transform.forward;
-            currentPos = transform.position;
-            moveTargetDir = moveDestination - currentPos;
-            targetDistance = moveTargetDir.magnitude;
+            targetRotationY = recievedTargetRotationY;
+
+            Vector3 moveTargetDir = moveDestination - currentPos;
+            float targetDistance = moveTargetDir.magnitude;
             forwardTargetAngleStart = Vector3.Angle(forwardDir, moveTargetDir);
 
             if (forwardTargetAngleStart < 90)
@@ -1106,23 +613,23 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
                 print("angle limit = " + 90 / turnRadius * targetDistance + ", angle = " + forwardTargetAngleStart);
                 if (forwardTargetAngleStart < 90 / turnRadius * targetDistance) // Вперёд
                 {
-                    behaviour = BehaviourState.TurnToDirection;
+                    thrustDirection = ThrustDirection.Forward;
                     targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
                 }
-                else
+                else  // Назад, разворачиваясь к точке передом
                 {
-                    behaviour = BehaviourState.ReverseTurn; // Назад, разворачиваясь к точке передом
+                    thrustDirection = ThrustDirection.Backward;
                     targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
                 }
             }
             else if ((targetDistance < turnRadius && forwardTargetAngleStart < 150) || targetDistance > turnRadius)
             {
-                behaviour = BehaviourState.ReverseTurn; // Назад, разворачиваясь к точке передом
+                thrustDirection = ThrustDirection.Backward; // Назад, разворачиваясь к точке передом
                 targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
             }
             else
             {
-                behaviour = BehaviourState.Reverse; // Задом на точку
+                thrustDirection = ThrustDirection.Backward; // Задом на точку
                 if (recievedTargetRotationY != 0)
                     targetRotationY = recievedTargetRotationY;
                 else if (moveInGroup)
@@ -1132,9 +639,54 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
             }
         }
         //Debug.Log(behaviour + ", moveDestination " + moveDestination + ", targetDistance " + targetDistance + ", forwardTargetAngleStart " + forwardTargetAngleStart);
-        Debug.Log("targetDistance " + targetDistance + ", forwardTargetAngleStart " + forwardTargetAngleStart + ", targetRotationY = " + targetRotationY);
+        //Debug.Log("targetDistance " + targetDistance + ", forwardTargetAngleStart " + forwardTargetAngleStart + ", targetRotationY = " + targetRotationY);
 
         //oldmoveDestination = moveDestination;
+    }
+
+    private void SetMoveParams(ThrustDirection direction)
+    {
+        print("SetMoveParams " + direction);
+        switch (direction)
+        {
+            case ThrustDirection.Forward:
+                switch (thrustDirection)
+                {
+                    case ThrustDirection.Backward:
+                        trail.transform.rotation = Quaternion.Inverse(transform.rotation);
+                        break;
+                    case ThrustDirection.Idle:
+                        trail.Play();
+                        break;
+                }
+                break;
+            case ThrustDirection.Backward:
+                switch (thrustDirection)
+                {
+                    case ThrustDirection.Forward:
+                        trail.transform.rotation = transform.rotation;
+                        break;
+                    case ThrustDirection.Idle:
+                        trail.transform.rotation = Quaternion.Inverse(transform.rotation);
+                        trail.Play();
+                        break;
+                }
+                break;
+            case ThrustDirection.Idle:
+                switch (thrustDirection)
+                {
+                    case ThrustDirection.Forward:
+                        trail.Stop();
+                        break;
+                    case ThrustDirection.Backward:
+                        trail.Stop();
+                        trail.transform.rotation = transform.rotation;
+                        break;
+                }
+                chasedDirection = firstDir = secondDir = Vector3.zero;
+                break;
+        }
+        thrustDirection = direction;
     }
 
     public void SetAttackTarget(GameObject target, bool fixTarget)
@@ -1151,7 +703,7 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
 
     private void OnCollisionEnter(Collision collision)
     {
-        stopped = false;
+        moving = true;
     }
 
     private Vector3[] FindTangentPoints(bool toPoint, Vector3 circle_1, Vector3 circle_2_orPoint, bool inner, bool left)
@@ -1162,18 +714,10 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
 
         Vector3 diff = circle_1 - circle_2_orPoint;
         float distance = toPoint ? diff.magnitude : diff.magnitude / 2;
-
-        float angleForTangent;
-        if (!inner)
-            angleForTangent = 90;
-        else
-            angleForTangent = Mathf.Acos(turnRadius / distance) * 180 / Mathf.PI;
+        float angleForTangent = !inner ? 90 : Mathf.Acos(turnRadius / distance) * 180 / Mathf.PI;
 
         result[0] = circle_1 + Quaternion.AngleAxis(sideCoeff * angleForTangent, Vector3.up) * -diff.normalized * turnRadius;
-
-        if (!toPoint)
-            result[1] = circle_2_orPoint + Quaternion.AngleAxis(innerCoeff * sideCoeff * angleForTangent, Vector3.up) * diff.normalized * turnRadius;
-
+        if (!toPoint) result[1] = circle_2_orPoint + Quaternion.AngleAxis(innerCoeff * sideCoeff * angleForTangent, Vector3.up) * diff.normalized * turnRadius;
         return result;
     }
 
@@ -1203,16 +747,123 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
         return (vectors[0], vectors[1]);
     }
 }
+#endregion orignal
 
-// draw a red circle around the scene cube
-[CustomEditor(typeof(MoveSubStandart))]
-public class CubeEditor : Editor
-{
-    void OnSceneGUI()
-    {
-        MoveSubStandart cubeExample = (MoveSubStandart)target;
+#region gpt
+//using UnityEngine;
 
-        Handles.color = Color.red;
-        Handles.DrawWireDisc(cubeExample.transform.position, new Vector3(0, 1, 0), cubeExample.attackRange);
-    }
-}
+//public class MoveSubStandart : MonoBehaviour, ISelectable
+//{
+//    public Rigidbody submarineRigidbody;
+//    private ParticleSystem trail;
+//    private GameObject selectionSprite;
+//    public float moveForce = 10f;
+//    public float maxSpeed = 5f;
+//    public float rotationSpeedMultiplier = 2f;
+//    public float staticRotationSpeed = 90f;
+//    public int attackRange = 40;
+//    public bool stopped = true, searching = false, fixTarget = false;
+//    public GameObject torpPrefab, target = null;
+//    private bool hasDestination = false;
+//    public float stopThreshold = 0.1f;
+
+//    private Vector3 destination;
+//    private Quaternion targetRotation;
+//    public int team = 1;
+//    public int Team
+//    {
+//        get { return team; }
+//    }
+
+//    public bool Alive
+//    {
+//        get { return this != null; }
+//    }
+//    public void Select()
+//    {
+//        selectionSprite.SetActive(true);
+//    }
+
+//    public void Deselect()
+//    {
+//        selectionSprite.SetActive(false);
+//    }
+
+//    private void Start()
+//    {
+//        trail = transform.Find("Trail").GetComponent<ParticleSystem>();
+//        submarineRigidbody = GetComponent<Rigidbody>();
+//        selectionSprite = transform.Find("Selection Sprite").gameObject;
+//    }
+//    public void MoveTo(Vector3 destinationPoint, float targetAngleY)
+//    {
+//        destination = destinationPoint;
+
+//        targetAngleY = targetAngleY < 180 ? targetAngleY : targetAngleY - 360;
+//        targetRotation = Quaternion.Euler(new Vector3(0, targetAngleY, 0));
+//        hasDestination = true;
+//    }
+
+//    private void FixedUpdate()
+//    {
+//        if (hasDestination)
+//        {
+//            Move();
+//            Rotate();
+//        }
+//    }
+
+//    private void Move()
+//    {
+//        float distance = Vector3.Distance(transform.position, destination);
+
+//        if (distance > stopThreshold)
+//        {
+//            // Only move forward along the submarine's local z-axis
+//            Vector3 forwardDirection = transform.forward;
+//            submarineRigidbody.AddForce(forwardDirection * moveForce, ForceMode.Force);
+
+//            // Apply water resistance based on the current speed
+//            float resistanceForce = -submarineRigidbody.velocity.magnitude * submarineRigidbody.velocity.magnitude;
+//            submarineRigidbody.AddForce(resistanceForce * submarineRigidbody.velocity.normalized);
+//        }
+//        else
+//        {
+//            // Stop the submarine when it reaches the destination
+//            submarineRigidbody.velocity = Vector3.zero;
+//            hasDestination = false;
+//        }
+
+//        // Limit the maximum speed
+//        if (submarineRigidbody.velocity.magnitude > maxSpeed)
+//        {
+//            submarineRigidbody.velocity = submarineRigidbody.velocity.normalized * maxSpeed;
+//        }
+//    }
+
+//    private void Rotate()
+//    {
+//        float rotationSpeed = Mathf.Abs(submarineRigidbody.velocity.magnitude) * rotationSpeedMultiplier + staticRotationSpeed;
+
+//        Quaternion deltaRotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+//        submarineRigidbody.MoveRotation(deltaRotation);
+//    }
+
+//    public void SetAttackTarget(GameObject target, bool fixTarget)
+//    {
+//        print("Entered SetAttackTarget, target = " + target.name);
+//        this.target = target;
+//        if (fixTarget == true)
+//            this.fixTarget = fixTarget;
+
+//        //behaviour = BehaviourState.Attacking;
+//        if (Vector3.Distance(transform.position, target.transform.position) > attackRange)
+//            MoveTo(target.transform.position, Quaternion.LookRotation(target.transform.position - transform.position).eulerAngles.y);
+//    }
+
+//    public void Stop(bool input = false)
+//    {
+
+//    }
+//}
+#endregion gpt
