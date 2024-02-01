@@ -255,23 +255,24 @@ public class PlayerInput : MonoBehaviour
             //Debug.Log("wayLine = " + wayLine);
         }
         wayLine /= totalUnits;
-        wayLine.y = 0;
+        //wayLine.y = 0;
         //Debug.Log("wayLine final = " + wayLine);
 
         // Calculate the starting position of the line
-        Vector3 avgDirection = wayLine - targetPosition;
+        Vector3 avgDirection = targetPosition - wayLine;
         avgDirection.y = 0;
         Vector3 lineStart, targetDirection;
         if (targetRotationY == 0)
         {
             targetDirection = avgDirection.normalized;
             targetRotationY = Quaternion.LookRotation(targetDirection).eulerAngles.y;
-            print("targetRotationY  = " + targetRotationY + ", targetDirection = " + targetDirection);
+            //print("targetRotationY  = " + targetRotationY + ", targetDirection = " + targetDirection);
+            //Debug.DrawRay(wayLine, targetDirection * 1000, Color.blue, 10);
         }
         else
         {
-            targetDirection = Quaternion.Euler(new Vector3(0, targetRotationY, 0)) * Vector3.forward;
-            print("targetDirection = " + targetDirection);
+            targetDirection = Quaternion.Euler(0, targetRotationY, 0) * Vector3.right;
+            //print("targetDirection = " + targetDirection);
         }
             //targetDirection = new Vector3(0, targetRotationY, 0);
         //Debug.Log("targetDirection = " + targetDirection);
@@ -305,10 +306,10 @@ public class PlayerInput : MonoBehaviour
 
             bool isGroup = selectedUnits.Count > 1;
             print("targetRotationY = " + targetRotationY);
+            print("Target position = " + targetPointsInLine[minDistanceIndex] + " for " + unit.name);
             unitScriptStandart.SetMoveDestination(targetPointsInLine[minDistanceIndex], false, targetRotationY, moveInGroup: isGroup);
             //unitScriptStandart.MoveTo(targetPointsInLine[minDistanceIndex], targetRotationY);
             
-            print("Target position = " + targetPointsInLine[minDistanceIndex] + " for " + unit.name);
             //print("Maxed target point " + minDistanceIndex + " : " + unit.GetComponent<MoveSubV7>().moveDestinationition + " for " + unit.name);
             Debug.DrawLine(unit.transform.position, targetPointsInLine[minDistanceIndex], Color.black, 10.0f);
             targetPointsInLine[minDistanceIndex] = new Vector3(int.MaxValue, int.MaxValue, int.MaxValue);
