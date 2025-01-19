@@ -102,9 +102,9 @@ public class MoveSubVector : MonoBehaviour, ISelectable
     void Update()
     {
         timer += Time.deltaTime;
-        startVelocity = subRb.velocity;
+        startVelocity = subRb.linearVelocity;
 
-        // Симуляция сопротивления среды
+        // РЎРёРјСѓР»СЏС†РёСЏ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ СЃСЂРµРґС‹
         if (startVelocity.magnitude > 0.5f)
         {
             moving = true;
@@ -128,7 +128,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
         }
         else if (moving && chasedDirection == Vector3.zero)
         {
-            subRb.velocity = slowedVelocity = Vector3.zero;
+            subRb.linearVelocity = slowedVelocity = Vector3.zero;
             moving = false;
             print("Kill velocity");
         }
@@ -138,23 +138,23 @@ public class MoveSubVector : MonoBehaviour, ISelectable
         ChangeBehaviour();
         Move();
 
-        if (chasedDirection == Vector3.zero && !aligned) // Выравнивание без цели
+        if (chasedDirection == Vector3.zero && !aligned) // Р’С‹СЂР°РІРЅРёРІР°РЅРёРµ Р±РµР· С†РµР»Рё
         {
             //print(transform.name + " Aligning, angles = " + transform.localEulerAngles + ", targetRotationY = " + targetRotationY);
             TurnToAnglesXY(0, targetRotationY, 1, true);
         }
-        else if (target != null && team == 1 && ammo > 0) // Выравнивание на цель
+        else if (target != null && team == 1 && ammo > 0) // Р’С‹СЂР°РІРЅРёРІР°РЅРёРµ РЅР° С†РµР»СЊ
         {
             currentPos = transform.position;
             attackTargetDir = target.transform.position - transform.position;
             float angleTarget = Vector3.Angle(transform.forward, attackTargetDir);
 
-            if (angleTarget > 5) { aligned = false; }  // Не выровнен
+            if (angleTarget > 5) { aligned = false; }  // РќРµ РІС‹СЂРѕРІРЅРµРЅ
 
-            if (!aligned) // Поворот на цель
+            if (!aligned) // РџРѕРІРѕСЂРѕС‚ РЅР° С†РµР»СЊ
             {
                 print(transform.name + " Turning to target, angle = " + angleTarget + ", attackTargetDir = " + attackTargetDir + ", target = " + target.name);
-                //newRotation = Quaternion.LookRotation(moveTargetDir - slowedVelocity, Vector3.up); // Компенсация боковой скорости
+                //newRotation = Quaternion.LookRotation(moveTargetDir - slowedVelocity, Vector3.up); // РљРѕРјРїРµРЅСЃР°С†РёСЏ Р±РѕРєРѕРІРѕР№ СЃРєРѕСЂРѕСЃС‚Рё
 
                 newRotation = Quaternion.LookRotation(attackTargetDir, Vector3.up);
                 float targetAngleX = newRotation.eulerAngles.x;
@@ -163,10 +163,10 @@ public class MoveSubVector : MonoBehaviour, ISelectable
 
                 aligned = TurnToAnglesXY(targetAngleX, targetAngleY, 1, false);
             }
-            else if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // На дистанции выстрела
+            else if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // РќР° РґРёСЃС‚Р°РЅС†РёРё РІС‹СЃС‚СЂРµР»Р°
             {
                 moveDestination = Vector3.zero;
-                if (timer - lastShotTime > reloadTime - 0.1f || lastShotTime == 0) // Не идёт перезарядка
+                if (timer - lastShotTime > reloadTime - 0.1f || lastShotTime == 0) // РќРµ РёРґС‘С‚ РїРµСЂРµР·Р°СЂСЏРґРєР°
                 {
                     //stopped = false;
                     lastShotTime = timer;
@@ -185,7 +185,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
                 }
                 //else if(team==1) print("timer - lastShotTime = " + (timer - lastShotTime));
             }
-            else if (/*thrustDirection == BehaviourState.StillApproach*/ true) // Цель уплыла - подплыть на расстояние выстрела
+            else if (/*thrustDirection == BehaviourState.StillApproach*/ true) // Р¦РµР»СЊ СѓРїР»С‹Р»Р° - РїРѕРґРїР»С‹С‚СЊ РЅР° СЂР°СЃСЃС‚РѕСЏРЅРёРµ РІС‹СЃС‚СЂРµР»Р°
             {
                 moveDestination = target.transform.position - (attackRange - 2) * attackTargetDir.normalized;
                 chasedDirection = target.transform.position - currentPos;
@@ -267,7 +267,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
 
         //var distanceStep = (currentPos - oldPos).magnitude;
 
-        // Поворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
+        // РџРѕРІРѕСЂРѕС‚ РЅР° С†РµР»СЊ + РґРѕР±Р°РІРєР° СѓРіР»Р°, С‡С‚РѕР±С‹ РїРѕРіР°СЃРёС‚СЊ РїСЂРѕРµРєС†РёСЋ СЃРєРѕСЂРѕСЃС‚Рё РІ Р±РѕРє РѕС‚ С†РµР»Рё
         //transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, anglestep);
         //transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, turnRadius * speed * Time.deltaTime);
 
@@ -298,7 +298,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
         }
 
         Vector2 angleDiff = new(targetAngleX - currentAngleX, targetAngleY - currentAngleY);
-        // Плавное выравнивание
+        // РџР»Р°РІРЅРѕРµ РІС‹СЂР°РІРЅРёРІР°РЅРёРµ
         if (currentAngleZ > 1 || angleDiff.magnitude > threshold)
         {
             Quaternion targetRotationY = Quaternion.Euler(transform.localEulerAngles.x, targetAngleY, -transform.localEulerAngles.z);
@@ -309,7 +309,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             float turnSpeedYaw = steadyYawSpeed;
             if (speed > 1)
             {
-                turnSpeedYaw += Mathf.Sqrt(speed); // Компонента скорости поворота, зависящая от скорости
+                turnSpeedYaw += Mathf.Sqrt(speed); // РљРѕРјРїРѕРЅРµРЅС‚Р° СЃРєРѕСЂРѕСЃС‚Рё РїРѕРІРѕСЂРѕС‚Р°, Р·Р°РІРёСЃСЏС‰Р°СЏ РѕС‚ СЃРєРѕСЂРѕСЃС‚Рё
             }
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotationY, turnSpeedYaw * Time.deltaTime);
             //print(transform.name + " turnSpeedYaw = " + turnSpeedYaw);
@@ -320,7 +320,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             float turnSpeedPitch = steadyPitchSpeed;
             if (speed > 1)
             {
-                turnSpeedPitch += Mathf.Sqrt(speed); // Компонента скорости поворота, зависящая от скорости
+                turnSpeedPitch += Mathf.Sqrt(speed); // РљРѕРјРїРѕРЅРµРЅС‚Р° СЃРєРѕСЂРѕСЃС‚Рё РїРѕРІРѕСЂРѕС‚Р°, Р·Р°РІРёСЃСЏС‰Р°СЏ РѕС‚ СЃРєРѕСЂРѕСЃС‚Рё
             }
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotationX, turnSpeedPitch * Time.deltaTime);
             //print(transform.name + " turnSpeedPitch = " + turnSpeedPitch);
@@ -329,7 +329,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             Debug.DrawRay(currentPos, Vector3.up * 10, Color.red);
             return false;
         }
-        else if (hardAlignment) // Жёсткое выравнивание
+        else if (hardAlignment) // Р–С‘СЃС‚РєРѕРµ РІС‹СЂР°РІРЅРёРІР°РЅРёРµ
         {
             print(gameObject.name + " Hard alignment");
 
@@ -338,7 +338,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             subRb.angularVelocity = Vector3.zero;
             return true;
         }
-        else // Достаточно близко
+        else // Р”РѕСЃС‚Р°С‚РѕС‡РЅРѕ Р±Р»РёР·РєРѕ
         {
             print(gameObject.name + " Alignment threshold reached, angleDiff = " + angleDiff.magnitude);
 
@@ -380,7 +380,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
         torpedo.GetComponent<MoveTorpV1>().team = team;
         Physics.IgnoreCollision(gameObject.GetComponent<CapsuleCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
         forwardDir = transform.forward;
-        torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 10 * forwardDir.normalized, ForceMode.Impulse);
+        torpedo.GetComponent<Rigidbody>().AddForce(subRb.linearVelocity + 10 * forwardDir.normalized, ForceMode.Impulse);
 
         //Debug.DrawRay(transform.position, subRb.velocity + 10 * forwardDir.normalized, Color.blue, 2);
         //print("subRb.velocity = " + subRb.velocity);
@@ -418,7 +418,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             Vector3 targetRotationVec = Quaternion.Euler(new Vector3(0, recievedTargetRotationY, 0)) * Vector3.forward;
             string logStrStart = "BUILD TRAJECTORY: ";
 
-            // Определение отностительного расположения
+            // РћРїСЂРµРґРµР»РµРЅРёРµ РѕС‚РЅРѕСЃС‚РёС‚РµР»СЊРЅРѕРіРѕ СЂР°СЃРїРѕР»РѕР¶РµРЅРёСЏ
             float angleRelativeToDestination = Vector3.SignedAngle(targetRotationVec, currentPos - moveDestination, Vector3.up);
 
             bool leftHalf = angleRelativeToDestination < 0;
@@ -426,12 +426,12 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             bool swapDestCircle = false;
             print(logStrStart + "left half = " + leftHalf + ", front = " + front);
 
-            // Круг у точки назначения
+            // РљСЂСѓРі Сѓ С‚РѕС‡РєРё РЅР°Р·РЅР°С‡РµРЅРёСЏ
             float angleForDestinationCircle = angleRelativeToDestination < 0 ? -90 : 90;
             Vector3 centerDCDir = Quaternion.AngleAxis(angleForDestinationCircle, Vector3.up) * targetRotationVec * turnRadius;
             Vector3 circleCenterDestinationMe = moveDestination + centerDCDir, circleCenterDestinationMeOther = moveDestination - centerDCDir;
 
-            // Касательная ко мне, чтобы определить сторону взгляда относительно неё
+            // РљР°СЃР°С‚РµР»СЊРЅР°СЏ РєРѕ РјРЅРµ, С‡С‚РѕР±С‹ РѕРїСЂРµРґРµР»РёС‚СЊ СЃС‚РѕСЂРѕРЅСѓ РІР·РіР»СЏРґР° РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕ РЅРµС‘
             Vector3 pointTangentDCToMe = FindTangentPoints(true, circleCenterDestinationMe, currentPos, true, leftHalf)[0];
             float angleMyDirectionToTangent = Vector3.SignedAngle(currentPos - pointTangentDCToMe, forwardDir, Vector3.up);
             Debug.DrawLine(pointTangentDCToMe, currentPos, Color.white, showtime);
@@ -448,25 +448,25 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             float a = Mathf.Abs(angleMyDirectionToTangent);
 
             #region fullcheck
-            //if ((front && rightTurn != leftHalf) || (!front && rightTurn == leftHalf)) // Не надо проверять на пересечение границы
+            //if ((front && rightTurn != leftHalf) || (!front && rightTurn == leftHalf)) // РќРµ РЅР°РґРѕ РїСЂРѕРІРµСЂСЏС‚СЊ РЅР° РїРµСЂРµСЃРµС‡РµРЅРёРµ РіСЂР°РЅРёС†С‹
             //{
-            //    if (a > 60) // Вперёд
+            //    if (a > 60) // Р’РїРµСЂС‘Рґ
             //    {
             //        SetMoveParams(ThrustDirection.Forward);
             //        firstDir = Vector3.zero;
             //        (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMe, circleCenterDestinationMe, !front, rightTurn != leftHalf));
             //    }
-            //    else // Назад
+            //    else // РќР°Р·Р°Рґ
             //    {
             //        SetMoveParams(ThrustDirection.Backward);
             //        firstDir = Quaternion.AngleAxis(front == leftHalf ? -90 : 90, Vector3.up) * (currentPos - pointTangentDCToMe);
             //        (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeOther, circleCenterDestinationMe, !front, rightTurn != leftHalf));
             //    }
             //}
-            //else // Проверка на пересечение границы сторон
+            //else // РџСЂРѕРІРµСЂРєР° РЅР° РїРµСЂРµСЃРµС‡РµРЅРёРµ РіСЂР°РЅРёС†С‹ СЃС‚РѕСЂРѕРЅ
             //{
             //    float angleForward_TargetRotation = Vector3.Angle(targetRotationVec, forwardDir), x;
-            //    if (a > 60) // Вперёд
+            //    if (a > 60) // Р’РїРµСЂС‘Рґ
             //    {
             //        SetMoveParams(ThrustDirection.Forward);
             //        firstDir = Vector3.zero;
@@ -499,7 +499,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             //            }
             //        }
             //    }
-            //    else // Назад
+            //    else // РќР°Р·Р°Рґ
             //    {
             //        SetMoveParams(ThrustDirection.Backward);
             //        if (front)
@@ -531,16 +531,16 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             print("Anglestart = " + a);
             SetMoveParams(forward ? ThrustDirection.Forward : ThrustDirection.Backward);
             firstDir = Vector3.zero;
-            if ((front && rightTurn != leftHalf) || (!front && rightTurn == leftHalf)) // Не надо проверять на пересечение границы
+            if ((front && rightTurn != leftHalf) || (!front && rightTurn == leftHalf)) // РќРµ РЅР°РґРѕ РїСЂРѕРІРµСЂСЏС‚СЊ РЅР° РїРµСЂРµСЃРµС‡РµРЅРёРµ РіСЂР°РЅРёС†С‹
             {
                 if (!forward)
                     firstDir = Quaternion.AngleAxis(front == leftHalf ? -180 : 180, Vector3.up) * (currentPos - pointTangentDCToMe);
                 (point_1, point_2) = Deconstruct(FindTangentPoints(false, forward ? circleCenterMeMain : circleCenterMeOther, circleCenterDestinationMe, !front, rightTurn != leftHalf));
             }
-            else // Проверка на пересечение границы сторон
+            else // РџСЂРѕРІРµСЂРєР° РЅР° РїРµСЂРµСЃРµС‡РµРЅРёРµ РіСЂР°РЅРёС†С‹ СЃС‚РѕСЂРѕРЅ
             {
                 float angleForward_TargetRotation = Vector3.Angle(front ? targetRotationVec : -targetRotationVec, forwardDir), x;
-                if (forward) // Вперёд
+                if (forward) // Р’РїРµСЂС‘Рґ
                 {
                     x = angleForward_TargetRotation > 90 ? turnRadius * Mathf.Sin(angleForward_TargetRotation) : turnRadius * (1 + Mathf.Cos(angleForward_TargetRotation));
                     print(logStrStart + "front" + ", x = " + x);
@@ -554,7 +554,7 @@ public class MoveSubVector : MonoBehaviour, ISelectable
                         (point_1, point_2) = Deconstruct(FindTangentPoints(false, circleCenterMeMain, circleCenterDestinationMe, front, front == leftHalf));
                     }
                 }
-                else // Назад
+                else // РќР°Р·Р°Рґ
                 {
                     if (front)
                     {
@@ -611,12 +611,12 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             if (forwardTargetAngleStart < 90)
             {
                 print("angle limit = " + 90 / turnRadius * targetDistance + ", angle = " + forwardTargetAngleStart);
-                if (forwardTargetAngleStart < 90 / turnRadius * targetDistance) // Вперёд
+                if (forwardTargetAngleStart < 90 / turnRadius * targetDistance) // Р’РїРµСЂС‘Рґ
                 {
                     thrustDirection = ThrustDirection.Forward;
                     targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
                 }
-                else  // Назад, разворачиваясь к точке передом
+                else  // РќР°Р·Р°Рґ, СЂР°Р·РІРѕСЂР°С‡РёРІР°СЏСЃСЊ Рє С‚РѕС‡РєРµ РїРµСЂРµРґРѕРј
                 {
                     thrustDirection = ThrustDirection.Backward;
                     targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
@@ -624,12 +624,12 @@ public class MoveSubVector : MonoBehaviour, ISelectable
             }
             else if ((targetDistance < turnRadius && forwardTargetAngleStart < 150) || targetDistance > turnRadius)
             {
-                thrustDirection = ThrustDirection.Backward; // Назад, разворачиваясь к точке передом
+                thrustDirection = ThrustDirection.Backward; // РќР°Р·Р°Рґ, СЂР°Р·РІРѕСЂР°С‡РёРІР°СЏСЃСЊ Рє С‚РѕС‡РєРµ РїРµСЂРµРґРѕРј
                 targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
             }
             else
             {
-                thrustDirection = ThrustDirection.Backward; // Задом на точку
+                thrustDirection = ThrustDirection.Backward; // Р—Р°РґРѕРј РЅР° С‚РѕС‡РєСѓ
                 if (recievedTargetRotationY != 0)
                     targetRotationY = recievedTargetRotationY;
                 else if (moveInGroup)

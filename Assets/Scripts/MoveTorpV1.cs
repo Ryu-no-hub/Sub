@@ -58,15 +58,15 @@ public class MoveTorpV1 : MonoBehaviour
         if (timer < 0.5) return;
 
         targetPosition = target.transform.position;
-        // Ñèìóëÿöèÿ ñîïðîòèâëåíèÿ ñðåäû
+        // Ð¡Ð¸Ð¼ÑƒÐ»ÑÑ†Ð¸Ñ ÑÐ¾Ð¿Ñ€Ð¾Ñ‚Ð¸Ð²Ð»ÐµÐ½Ð¸Ñ ÑÑ€ÐµÐ´Ñ‹
         startVelocity = torpRb.velocity;
         //newVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
 
         newVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Mathf.Pow(startVelocity.magnitude/10, 2) * Time.deltaTime);
         //print("Torp resistance coeff = " + Mathf.Clamp01(1f - myDrag * Mathf.Pow(startVelocity.magnitude/10, 2) * Time.deltaTime));
         //print("Mathf.Pow(startVelocity.magnitude, 2) = " + Mathf.Pow(startVelocity.magnitude, 2));
-        torpRb.velocity = newVelocity;
-        speed = Vector3.Magnitude(torpRb.velocity);
+        torpRb.linearVelocity = newVelocity;
+        speed = Vector3.Magnitude(torpRb.linearVelocity);
 
         if (moveMode != 0)
         {
@@ -86,13 +86,13 @@ public class MoveTorpV1 : MonoBehaviour
     }
     void Move()
     {
-        // Ïîâîðîò íà öåëü + äîáàâêà óãëà, ÷òîáû ïîãàñèòü ïðîåêöèþ ñêîðîñòè â áîê îò öåëè
+        // ÐŸÐ¾Ð²Ð¾Ñ€Ð¾Ñ‚ Ð½Ð° Ñ†ÐµÐ»ÑŒ + Ð´Ð¾Ð±Ð°Ð²ÐºÐ° ÑƒÐ³Ð»Ð°, Ñ‡Ñ‚Ð¾Ð±Ñ‹ Ð¿Ð¾Ð³Ð°ÑÐ¸Ñ‚ÑŒ Ð¿Ñ€Ð¾ÐµÐºÑ†Ð¸ÑŽ ÑÐºÐ¾Ñ€Ð¾ÑÑ‚Ð¸ Ð² Ð±Ð¾Ðº Ð¾Ñ‚ Ñ†ÐµÐ»Ð¸
         transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, Mathf.Sqrt(speed * rotationSpeedCoeff) * Time.deltaTime);
         //transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, speed * rotationSpeedCoeff * Time.deltaTime);
         Debug.DrawLine(currentPos, targetPosition, Color.red);
         //print("currentPos = " + currentPos);
 
-        // Òÿãà âïåð¸ä
+        // Ð¢ÑÐ³Ð° Ð²Ð¿ÐµÑ€Ñ‘Ð´
         torpRb.AddForce(force * forwardDirection, ForceMode.Acceleration);
         //print("Applying force " + force * forwardDirection);
 
@@ -121,7 +121,7 @@ public class MoveTorpV1 : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
         print("Collision! " + collision.gameObject.name);
-        torpRb.velocity = Vector3.zero;
+        torpRb.linearVelocity = Vector3.zero;
         moveMode = 0;
         bubbles.Stop();
         if (!collision.gameObject.CompareTag("Projectile"))
@@ -151,7 +151,7 @@ public class MoveTorpV1 : MonoBehaviour
                 destroyed = true;
                 explosion.Play();
                 torpedoAudio.PlayOneShot(torpedoExplosion, 0.1f);
-                torpRb.velocity = Vector3.zero;
+                torpRb.linearVelocity = Vector3.zero;
                 moveMode = 0;
                 bubbles.Stop();
                 Destroy(child.gameObject);

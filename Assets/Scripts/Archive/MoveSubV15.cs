@@ -92,22 +92,22 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
     {
         timer += Time.deltaTime;
 
-        startVelocity = subRb.velocity;
+        startVelocity = subRb.linearVelocity;
 
-        // Симуляция сопротивления среды
+        // РЎРёРјСѓР»СЏС†РёСЏ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ СЃСЂРµРґС‹
         if (startVelocity.magnitude > 0.5f)
         {
             //slowedVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
             //slowedVelocity = startVelocity * (1 - myDrag * Mathf.Clamp(startVelocity.magnitude, 1, 1000) * Time.deltaTime);
 
             slowedVelocity = startVelocity * (1f - myDrag * Time.deltaTime);
-            subRb.velocity = slowedVelocity;
+            subRb.linearVelocity = slowedVelocity;
             speed = slowedVelocity.magnitude;
 
             //print(transform.name + " speed = " + speed);
             //print("targetDistance = " + targetDistance);
 
-            // Проверка когда пора выключать двигатели
+            // РџСЂРѕРІРµСЂРєР° РєРѕРіРґР° РїРѕСЂР° РІС‹РєР»СЋС‡Р°С‚СЊ РґРІРёРіР°С‚РµР»Рё
             stopTime = targetDistance / speed;
             dragDecel = (startVelocity.magnitude - slowedVelocity.magnitude) / Time.deltaTime;
             velocityTargetAngle = Vector3.Angle(slowedVelocity, moveTargetDir);
@@ -120,7 +120,7 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
         }
         else if (!stopped && moveDestination == Vector3.zero)
         {
-            subRb.velocity = subRb.angularVelocity = slowedVelocity = Vector3.zero;
+            subRb.linearVelocity = subRb.angularVelocity = slowedVelocity = Vector3.zero;
             stopped = true;
             print("Kill velocity");
         }
@@ -135,7 +135,7 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
 
             Move();
 
-            // По необходимости измененить режим движения 
+            // РџРѕ РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РёР·РјРµРЅРµРЅРёС‚СЊ СЂРµР¶РёРј РґРІРёР¶РµРЅРёСЏ 
             forwardTargetAngle = Vector3.Angle(forwardDir, moveTargetDir);
             switch (behaviour)
             {
@@ -162,8 +162,8 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
             if (target == null)
             {
                 if (
-                targetDistance < 2 // погрешность достижения точки, либо она слишком близко
-                || ((stopTime < speed / dragDecel * myDrag) && (velocityTargetAngle < 5 || velocityTargetAngle > 175)) // направление примерно на точку, чтобы не промахиваться по времени остановки
+                targetDistance < 2 // РїРѕРіСЂРµС€РЅРѕСЃС‚СЊ РґРѕСЃС‚РёР¶РµРЅРёСЏ С‚РѕС‡РєРё, Р»РёР±Рѕ РѕРЅР° СЃР»РёС€РєРѕРј Р±Р»РёР·РєРѕ
+                || ((stopTime < speed / dragDecel * myDrag) && (velocityTargetAngle < 5 || velocityTargetAngle > 175)) // РЅР°РїСЂР°РІР»РµРЅРёРµ РїСЂРёРјРµСЂРЅРѕ РЅР° С‚РѕС‡РєСѓ, С‡С‚РѕР±С‹ РЅРµ РїСЂРѕРјР°С…РёРІР°С‚СЊСЃСЏ РїРѕ РІСЂРµРјРµРЅРё РѕСЃС‚Р°РЅРѕРІРєРё
                     )
                 {
                     Stop();
@@ -184,23 +184,23 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
                 }
             }
         }
-        else if (target == null && !aligned) // Выравнивание без цели
+        else if (target == null && !aligned) // Р’С‹СЂР°РІРЅРёРІР°РЅРёРµ Р±РµР· С†РµР»Рё
         {
             //print(transform.name + " Aligning, angles = " + transform.localEulerAngles);
             TurnToAnglesXY(0, targetRotationY, 1, true);
         }
-        else if (target != null && team == 1 && ammo > 0) // Выравнивание на цель
+        else if (target != null && team == 1 && ammo > 0) // Р’С‹СЂР°РІРЅРёРІР°РЅРёРµ РЅР° С†РµР»СЊ
         {
             currentPos = transform.position;
             attackTargetDir = target.transform.position - transform.position;
             float angleTarget = Vector3.Angle(transform.forward, attackTargetDir);
 
-            if (angleTarget > 5) { aligned = false; }  // Не выровнен
+            if (angleTarget > 5) { aligned = false; }  // РќРµ РІС‹СЂРѕРІРЅРµРЅ
 
-            if (!aligned) // Поворот на цель
+            if (!aligned) // РџРѕРІРѕСЂРѕС‚ РЅР° С†РµР»СЊ
             {
                 print(transform.name + " Turning to target, angle = " + angleTarget + ", attackTargetDir = " + attackTargetDir + ", target = " + target.name);
-                //newRotation = Quaternion.LookRotation(moveTargetDir - slowedVelocity, Vector3.up); // Компенсация боковой скорости
+                //newRotation = Quaternion.LookRotation(moveTargetDir - slowedVelocity, Vector3.up); // РљРѕРјРїРµРЅСЃР°С†РёСЏ Р±РѕРєРѕРІРѕР№ СЃРєРѕСЂРѕСЃС‚Рё
 
                 newRotation = Quaternion.LookRotation(attackTargetDir, Vector3.up);
                 float targetAngleX = newRotation.eulerAngles.x;
@@ -209,9 +209,9 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
 
                 aligned = TurnToAnglesXY(targetAngleX, targetAngleY, 1, false);
             }
-            else if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // На дистанции выстрела
+            else if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // РќР° РґРёСЃС‚Р°РЅС†РёРё РІС‹СЃС‚СЂРµР»Р°
             {
-                if (timer - lastShotTime > reloadTime - 0.1f || lastShotTime == 0) // Не идёт перезарядка
+                if (timer - lastShotTime > reloadTime - 0.1f || lastShotTime == 0) // РќРµ РёРґС‘С‚ РїРµСЂРµР·Р°СЂСЏРґРєР°
                 {
                     //stopped = false;
                     lastShotTime = timer;
@@ -225,7 +225,7 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
                 }
                 //else if(team==1) print("timer - lastShotTime = " + (timer - lastShotTime));
             }
-            else if (behaviour != BehaviourState.StillApproach) // Цель уплыла - подплыть на расстояние выстрела
+            else if (behaviour != BehaviourState.StillApproach) // Р¦РµР»СЊ СѓРїР»С‹Р»Р° - РїРѕРґРїР»С‹С‚СЊ РЅР° СЂР°СЃСЃС‚РѕСЏРЅРёРµ РІС‹СЃС‚СЂРµР»Р°
             {
                 moveDestination = target.transform.position - (attackRange - 2) * attackTargetDir.normalized;
                 print("Setting move destination to approach target for " + transform.name + " target = " + target);
@@ -253,10 +253,10 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
             case BehaviourState.FullThrottle:
                 thrust = 1;
                 break;
-            case BehaviourState.ReverseTurn: // Движение задом, разворачиваясь к точке передом
+            case BehaviourState.ReverseTurn: // Р”РІРёР¶РµРЅРёРµ Р·Р°РґРѕРј, СЂР°Р·РІРѕСЂР°С‡РёРІР°СЏСЃСЊ Рє С‚РѕС‡РєРµ РїРµСЂРµРґРѕРј
                 thrust = -0.5f;
                 break;
-            case BehaviourState.Reverse: // Движение задом на точку
+            case BehaviourState.Reverse: // Р”РІРёР¶РµРЅРёРµ Р·Р°РґРѕРј РЅР° С‚РѕС‡РєСѓ
                 newRotation *= Quaternion.AngleAxis(Vector3.Angle(moveTargetDir, forwardDir), Vector3.up);
                 if (trail.transform.rotation != transform.rotation)
                 {
@@ -270,11 +270,11 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
         if (!trail.isPlaying)
             trail.Play();
 
-        // Тяга вперёд
+        // РўСЏРіР° РІРїРµСЂС‘Рґ
         subRb.AddForce(power * thrust * Mathf.Clamp01(targetDistance / borderDistance) * forwardDir);
         //print("Applying power " + power * thrust * Mathf.Clamp01(targetDistance * thrustDistCoeff) * Mathf.Clamp(mode, -1, 1));
 
-        // Поворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
+        // РџРѕРІРѕСЂРѕС‚ РЅР° С†РµР»СЊ + РґРѕР±Р°РІРєР° СѓРіР»Р°, С‡С‚РѕР±С‹ РїРѕРіР°СЃРёС‚СЊ РїСЂРѕРµРєС†РёСЋ СЃРєРѕСЂРѕСЃС‚Рё РІ Р±РѕРє РѕС‚ С†РµР»Рё
         transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, turnRadius * Mathf.Sqrt(speed) * Time.deltaTime);
         Debug.DrawRay(currentPos, (moveTargetDir - slowedVelocity) * 100, Color.red);
     }
@@ -297,7 +297,7 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
         }
 
         Vector2 angleDiff = new(targetAngleX - currentAngleX, targetAngleY - currentAngleY);
-        // Плавное выравнивание
+        // РџР»Р°РІРЅРѕРµ РІС‹СЂР°РІРЅРёРІР°РЅРёРµ
         if (currentAngleZ > 1 || angleDiff.magnitude > threshold)
         {
             Quaternion targetRotationY = Quaternion.Euler(transform.localEulerAngles.x, targetAngleY, -transform.localEulerAngles.z);
@@ -308,7 +308,7 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
             float turnSpeedYaw = steadyYawSpeed;
             if (speed > 1)
             {
-                turnSpeedYaw += Mathf.Sqrt(speed); // Компонента скорости поворота, зависящая от скорости
+                turnSpeedYaw += Mathf.Sqrt(speed); // РљРѕРјРїРѕРЅРµРЅС‚Р° СЃРєРѕСЂРѕСЃС‚Рё РїРѕРІРѕСЂРѕС‚Р°, Р·Р°РІРёСЃСЏС‰Р°СЏ РѕС‚ СЃРєРѕСЂРѕСЃС‚Рё
             }
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotationY, turnSpeedYaw * Time.deltaTime);
             //print(transform.name + " turnSpeedYaw = " + turnSpeedYaw);
@@ -319,7 +319,7 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
             float turnSpeedPitch = steadyPitchSpeed;
             if (speed > 1)
             {
-                turnSpeedPitch += Mathf.Sqrt(speed); // Компонента скорости поворота, зависящая от скорости
+                turnSpeedPitch += Mathf.Sqrt(speed); // РљРѕРјРїРѕРЅРµРЅС‚Р° СЃРєРѕСЂРѕСЃС‚Рё РїРѕРІРѕСЂРѕС‚Р°, Р·Р°РІРёСЃСЏС‰Р°СЏ РѕС‚ СЃРєРѕСЂРѕСЃС‚Рё
             }
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotationX, turnSpeedPitch * Time.deltaTime);
             //print(transform.name + " turnSpeedPitch = " + turnSpeedPitch);
@@ -328,7 +328,7 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
             Debug.DrawRay(currentPos, Vector3.up * 10, Color.red);
             return false;
         }
-        else if (hardAlignment) // Жёсткое выравнивание
+        else if (hardAlignment) // Р–С‘СЃС‚РєРѕРµ РІС‹СЂР°РІРЅРёРІР°РЅРёРµ
         {
             print(gameObject.name + " Hard alignment");
 
@@ -337,7 +337,7 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
             subRb.angularVelocity = Vector3.zero;
             return true;
         }
-        else // Достаточно близко
+        else // Р”РѕСЃС‚Р°С‚РѕС‡РЅРѕ Р±Р»РёР·РєРѕ
         {
             print(gameObject.name + " Alignment threshold reached, angleDiff = " + angleDiff.magnitude);
 
@@ -377,7 +377,7 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
         torpedo.GetComponent<MoveTorpV1>().team = team;
         Physics.IgnoreCollision(gameObject.GetComponent<CapsuleCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
         forwardDir = transform.forward;
-        torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 10 * forwardDir.normalized, ForceMode.Impulse);
+        torpedo.GetComponent<Rigidbody>().AddForce(subRb.linearVelocity + 10 * forwardDir.normalized, ForceMode.Impulse);
 
         //Debug.DrawRay(transform.position, subRb.velocity + 10 * forwardDir.normalized, Color.blue, 2);
         //print("subRb.velocity = " + subRb.velocity);
@@ -411,25 +411,25 @@ public class MoveSubV15 : MonoBehaviour, ISelectable
         if (forwardTargetAngleStart < 90)
         {
             print("targetDistance = " + targetDistance + ", angle limit = " + 90 / turnRadius * targetDistance + ", angle = " + forwardTargetAngleStart);
-            if (forwardTargetAngleStart < 90 / turnRadius * targetDistance) // Вперёд
+            if (forwardTargetAngleStart < 90 / turnRadius * targetDistance) // Р’РїРµСЂС‘Рґ
             {
                 behaviour = BehaviourState.TurnToDirection;
                 targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
             }
             else
             {
-                behaviour = BehaviourState.ReverseTurn; // Назад, разворачиваясь к точке передом
+                behaviour = BehaviourState.ReverseTurn; // РќР°Р·Р°Рґ, СЂР°Р·РІРѕСЂР°С‡РёРІР°СЏСЃСЊ Рє С‚РѕС‡РєРµ РїРµСЂРµРґРѕРј
                 targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
             }
         }
         else if ((targetDistance < turnRadius && forwardTargetAngleStart < 150) || targetDistance > turnRadius)
         {
-            behaviour = BehaviourState.ReverseTurn; // Назад, разворачиваясь к точке передом
+            behaviour = BehaviourState.ReverseTurn; // РќР°Р·Р°Рґ, СЂР°Р·РІРѕСЂР°С‡РёРІР°СЏСЃСЊ Рє С‚РѕС‡РєРµ РїРµСЂРµРґРѕРј
             targetRotationY = recievedTargetRotationY == 0 ? Quaternion.LookRotation(moveTargetDir, Vector3.up).eulerAngles.y : recievedTargetRotationY;
         }
         else
         {
-            behaviour = BehaviourState.Reverse; // Задом на точку
+            behaviour = BehaviourState.Reverse; // Р—Р°РґРѕРј РЅР° С‚РѕС‡РєСѓ
             if (recievedTargetRotationY != 0)
                 targetRotationY = recievedTargetRotationY;
             else if (moveInGroup)

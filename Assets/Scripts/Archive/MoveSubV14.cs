@@ -82,19 +82,19 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
     // Update is called once per frame
     void Update()
     {
-        // Симуляция сопротивления среды
-        startVelocity = subRb.velocity;
+        // РЎРёРјСѓР»СЏС†РёСЏ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ СЃСЂРµРґС‹
+        startVelocity = subRb.linearVelocity;
         slowedVelocity = startVelocity * Mathf.Clamp01(1f - myDrag * Time.deltaTime);
-        subRb.velocity = slowedVelocity;
+        subRb.linearVelocity = slowedVelocity;
 
 
-        // Отслеживание угла с вертикалью, чтобы сохранять гАризонтальную ориентацию вне активного движения
+        // РћС‚СЃР»РµР¶РёРІР°РЅРёРµ СѓРіР»Р° СЃ РІРµСЂС‚РёРєР°Р»СЊСЋ, С‡С‚РѕР±С‹ СЃРѕС…СЂР°РЅСЏС‚СЊ РіРђСЂРёР·РѕРЅС‚Р°Р»СЊРЅСѓСЋ РѕСЂРёРµРЅС‚Р°С†РёСЋ РІРЅРµ Р°РєС‚РёРІРЅРѕРіРѕ РґРІРёР¶РµРЅРёСЏ
         angleUp = Vector3.Angle(Vector3.up, transform.up);
 
         currentPos = transform.position;
         targetDir = moveDestination - currentPos;
         targetDistance = targetDir.magnitude;
-        speed = Vector3.Magnitude(subRb.velocity);
+        speed = Vector3.Magnitude(subRb.linearVelocity);
         timer += Time.deltaTime;
 
         //print(transform.name + " speed = " + speed);
@@ -133,7 +133,7 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
                 }
             }
 
-            // Проверка когда пора выключать двигатели
+            // РџСЂРѕРІРµСЂРєР° РєРѕРіРґР° РїРѕСЂР° РІС‹РєР»СЋС‡Р°С‚СЊ РґРІРёРіР°С‚РµР»Рё
             stopTime = targetDistance / speed;
             dragDecel = (startVelocity.magnitude - slowedVelocity.magnitude) / Time.deltaTime;
             velocityTargetAngle = Vector3.Angle(slowedVelocity, targetDir);
@@ -143,9 +143,9 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
             //print("real stop time = " + speed / dragDecel * myDrag);
             //print("dragDecel = " + dragDecel);
 
-            if (targetDistance < 2 || // погрешность достижения точки
+            if (targetDistance < 2 || // РїРѕРіСЂРµС€РЅРѕСЃС‚СЊ РґРѕСЃС‚РёР¶РµРЅРёСЏ С‚РѕС‡РєРё
                     ((stopTime < speed / dragDecel * myDrag)
-                    && (velocityTargetAngle < 5 || velocityTargetAngle > 175)) // направление примерно на точку, чтобы не промахиваться по времени остановки
+                    && (velocityTargetAngle < 5 || velocityTargetAngle > 175)) // РЅР°РїСЂР°РІР»РµРЅРёРµ РїСЂРёРјРµСЂРЅРѕ РЅР° С‚РѕС‡РєСѓ, С‡С‚РѕР±С‹ РЅРµ РїСЂРѕРјР°С…РёРІР°С‚СЊСЃСЏ РїРѕ РІСЂРµРјРµРЅРё РѕСЃС‚Р°РЅРѕРІРєРё
                     )
             {
                 Stop();
@@ -166,7 +166,7 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
             targetDir = target.transform.position - transform.position;
             float angleTarget = Vector3.Angle(transform.forward, targetDir);
 
-            if (angleTarget > 5) // Поворот на цель
+            if (angleTarget > 5) // РџРѕРІРѕСЂРѕС‚ РЅР° С†РµР»СЊ
             {
                 print(transform.name + " Turning to target, angle = " + angleTarget + ", targetDir = " + targetDir + ", target = " + target.name);
                 //new_rotation = Quaternion.LookRotation(targetDir - slowedVelocity);
@@ -178,9 +178,9 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
 
                 TurnToAnglesXY(targetAngleX, targetAngleY, 1, false);
             }
-            else if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // На дистанции выстрела
+            else if (Vector3.Distance(currentPos, target.transform.position) < attackRange) // РќР° РґРёСЃС‚Р°РЅС†РёРё РІС‹СЃС‚СЂРµР»Р°
             {
-                if (timer - lastShotTime > reloadTime - 0.1f || lastShotTime == 0) // Не идёт перезарядка
+                if (timer - lastShotTime > reloadTime - 0.1f || lastShotTime == 0) // РќРµ РёРґС‘С‚ РїРµСЂРµР·Р°СЂСЏРґРєР°
                 {
                     //stopped = false;
                     lastShotTime = timer;
@@ -190,7 +190,7 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
                 }
                 //else if(team==1) print("timer - lastShotTime = " + (timer - lastShotTime));
             }
-            else // Цель уплыла - подплыть на расстояние выстрела
+            else // Р¦РµР»СЊ СѓРїР»С‹Р»Р° - РїРѕРґРїР»С‹С‚СЊ РЅР° СЂР°СЃСЃС‚РѕСЏРЅРёРµ РІС‹СЃС‚СЂРµР»Р°
             {
                 //targetDir = target.transform.position - transform.position;
                 moveDestination = target.transform.position - (attackRange - 2) * targetDir.normalized;
@@ -201,7 +201,7 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
             aligned = false;
         }
 
-        // Проверка на новую точку назначения
+        // РџСЂРѕРІРµСЂРєР° РЅР° РЅРѕРІСѓСЋ С‚РѕС‡РєСѓ РЅР°Р·РЅР°С‡РµРЅРёСЏ
         if (moveDestination != Vector3.zero && moveDestination != oldmoveDestination)
         {
             aligned = false;
@@ -238,21 +238,21 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
             ThrustDirectionCoeff = 1;
         }
         else
-        {// Движение задом, разворачиваясь к точке передом
+        {// Р”РІРёР¶РµРЅРёРµ Р·Р°РґРѕРј, СЂР°Р·РІРѕСЂР°С‡РёРІР°СЏСЃСЊ Рє С‚РѕС‡РєРµ РїРµСЂРµРґРѕРј
             ThrustDirectionCoeff = 0.5f;
-            if (mode == -2) // Движение задом на точку
+            if (mode == -2) // Р”РІРёР¶РµРЅРёРµ Р·Р°РґРѕРј РЅР° С‚РѕС‡РєСѓ
                 new_rotation *= Quaternion.AngleAxis(Vector3.Angle(targetDir, forwardDir), Vector3.up);
         }
 
-        // Поворот на цель + добавка угла, чтобы погасить проекцию скорости в бок от цели
+        // РџРѕРІРѕСЂРѕС‚ РЅР° С†РµР»СЊ + РґРѕР±Р°РІРєР° СѓРіР»Р°, С‡С‚РѕР±С‹ РїРѕРіР°СЃРёС‚СЊ РїСЂРѕРµРєС†РёСЋ СЃРєРѕСЂРѕСЃС‚Рё РІ Р±РѕРє РѕС‚ С†РµР»Рё
         transform.rotation = Quaternion.RotateTowards(transform.rotation, new_rotation, Mathf.Sqrt(speed * rotationSpeedCoeff) * Time.deltaTime);
         Debug.DrawRay(currentPos, (targetDir - slowedVelocity) * 100, Color.red);
 
-        // Тяга вперёд
+        // РўСЏРіР° РІРїРµСЂС‘Рґ
         subRb.AddForce(force * ThrustDirectionCoeff * Mathf.Clamp01(targetDistance * ThrustDistCoeff) * Mathf.Clamp(mode, -1, 1) * forwardDir);
         //print("Applying force " + force * ThrustDirectionCoeff * Mathf.Clamp01(targetDistance * ThrustDistCoeff) * Mathf.Clamp(mode, -1, 1));
 
-        // Изменение направления пузырьков
+        // РР·РјРµРЅРµРЅРёРµ РЅР°РїСЂР°РІР»РµРЅРёСЏ РїСѓР·С‹СЂСЊРєРѕРІ
         if (mode == 1 && transform.rotation == bubblesLeft.transform.rotation)
         {
             bubblesLeft.transform.rotation = Quaternion.Inverse(transform.rotation);
@@ -290,7 +290,7 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
         float angleDiffY = targetAngleY - currentAngleY;
 
 
-        if (currentAngleZ > 1 || Mathf.Abs(angleDiffX) + Mathf.Abs(angleDiffY) > threshold) // Плавное выравнивание
+        if (currentAngleZ > 1 || Mathf.Abs(angleDiffX) + Mathf.Abs(angleDiffY) > threshold) // РџР»Р°РІРЅРѕРµ РІС‹СЂР°РІРЅРёРІР°РЅРёРµ
         {
             Quaternion targetRotation = Quaternion.Euler(targetAngleX, targetAngleY, -transform.localEulerAngles.z);
 
@@ -306,7 +306,7 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
 
             Debug.DrawRay(currentPos, (targetDir - slowedVelocity) * 100, Color.grey);
         }
-        else if (hardAlignment)// Жёсткое выравнивание и остановка вращения
+        else if (hardAlignment)// Р–С‘СЃС‚РєРѕРµ РІС‹СЂР°РІРЅРёРІР°РЅРёРµ Рё РѕСЃС‚Р°РЅРѕРІРєР° РІСЂР°С‰РµРЅРёСЏ
         {
             print(gameObject.name + " Hard alignment");
 
@@ -314,7 +314,7 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
             aligned = true;
             subRb.angularVelocity = Vector3.zero;
         }
-        else // Достаточно близко
+        else // Р”РѕСЃС‚Р°С‚РѕС‡РЅРѕ Р±Р»РёР·РєРѕ
         {
             print(gameObject.name + " Alignment threshold reached, angleDiffX = " + angleDiffX + ", angleDiffY = " + angleDiffY);
 
@@ -351,7 +351,7 @@ public class MoveSubV14 : MonoBehaviour, ISelectable
         torpedo.GetComponent<MoveTorpV1>().team = team;
         Physics.IgnoreCollision(gameObject.GetComponent<BoxCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
         forwardDir = transform.forward;
-        torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 10 * forwardDir.normalized, ForceMode.Impulse);
+        torpedo.GetComponent<Rigidbody>().AddForce(subRb.linearVelocity + 10 * forwardDir.normalized, ForceMode.Impulse);
 
         //Debug.DrawRay(transform.position, subRb.velocity + 10 * forwardDir.normalized, Color.blue, 2);
 
