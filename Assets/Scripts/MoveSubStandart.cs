@@ -100,7 +100,7 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
         //    print("timer = " + timer);
         //    print("count = " + count++);
         //}
-        startVelocity = subRb.velocity;
+        startVelocity = subRb.linearVelocity;
 
         // —имул€ци€ сопротивлени€ среды
         if (startVelocity.magnitude > 0.5f)
@@ -114,10 +114,10 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
             slowedVelocity = startVelocity * (1f - myDrag * (1 + alignSin) * Time.deltaTime);
             //slowedVelocity = Quaternion.RotateTowards(Quaternion.LookRotation(slowedVelocity, transform.up), transform.rotation, alignSin * Time.deltaTime) * slowedVelocity;
             slowedVelocity = Vector3.RotateTowards(slowedVelocity, transform.forward * slowedVelocity.magnitude, alignSin * Time.deltaTime, 0f);
-            subRb.velocity = slowedVelocity;
+            subRb.linearVelocity = slowedVelocity;
 
             //print("slowedVelocity before turn = " + slowedVelocity);
-            //subRb.velocity = slowedVelocity;
+            //subRb.linearVelocity = slowedVelocity;
             Debug.DrawRay(transform.position, slowedVelocity * 10, Color.white);
             Debug.DrawRay(transform.position, slowedVelocity * 10, Color.yellow);
             //print("slowedVelocity after turn = " + slowedVelocity);// + ", rotation = " + Vector3.Angle(slowedVelocity, forwardDir));
@@ -140,7 +140,7 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
         }
         else if (!stopped && moveDestination == Vector3.zero)
         {
-            subRb.velocity = subRb.angularVelocity = slowedVelocity = Vector3.zero;
+            subRb.linearVelocity = subRb.angularVelocity = slowedVelocity = Vector3.zero;
             stopped = true;
             print("Kill velocity");
         }
@@ -452,7 +452,7 @@ public class MoveSubStandart: MonoBehaviour, ISelectable
         torpedo.GetComponent<MoveTorpV1>().team = team;
         Physics.IgnoreCollision(gameObject.GetComponent<CapsuleCollider>(), torpedo.transform.Find("model").gameObject.GetComponent<BoxCollider>());
         forwardDir = transform.forward;
-        torpedo.GetComponent<Rigidbody>().AddForce(subRb.velocity + 10 * forwardDir.normalized, ForceMode.Impulse);
+        torpedo.GetComponent<Rigidbody>().AddForce(subRb.linearVelocity + 10 * forwardDir.normalized, ForceMode.Impulse);
 
         //Debug.DrawRay(transform.position, subRb.velocity + 10 * forwardDir.normalized, Color.blue, 2);
         //print("subRb.velocity = " + subRb.velocity);
